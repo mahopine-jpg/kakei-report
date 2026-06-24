@@ -1002,6 +1002,8 @@ const DEFAULT_WALLETS = [
   // 繰越口座（グループB）
   {name:'UFJ(通信費)',          budget:0, group:'carry'},
   {name:'SBI(司法書士プール)',   budget:0, group:'carry'},
+  {name:'SBI(バイク保険)',       budget:0, group:'carry'},
+  {name:'SBI(バイク点検)',       budget:0, group:'carry'},
   {name:'SBI(バイク整備)',       budget:0, group:'carry'},
   {name:'SBI(被服費)',          budget:0, group:'carry'},
   {name:'SBI(生活防衛資金)',     budget:0, group:'carry'},
@@ -1078,6 +1080,20 @@ let recurring = LS.get(KEY_RECURRING) || DEFAULT_RECURRING.map(r => ({...r}));
     }
   });
   if(changed) LS.set(KEY_RECURRING, recurring);
+})();
+// 移行：定例項目(reserve)の移動先(toWallet)が口座一覧に無ければ補完する
+// （初期口座リストの漏れで移動先が設定できなかった不整合の救済）
+(function migrateMissingWallets(){
+  const names = new Set(wallets.map(w => w.name));
+  let added = false;
+  recurring.forEach(it => {
+    if(it.kind === 'reserve' && it.toWallet && !names.has(it.toWallet)){
+      wallets.push({ name: it.toWallet, budget: 0, group: 'carry', lastBalance: 0 });
+      names.add(it.toWallet);
+      added = true;
+    }
+  });
+  if(added) LS.set(KEY_WALLETS, wallets);
 })();
 
 // ── カテゴリ ──
