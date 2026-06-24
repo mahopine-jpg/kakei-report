@@ -2665,6 +2665,16 @@ ${aiText}
 // ════════════════════════════════
 //  購入相談
 // ════════════════════════════════
+// 相談タブの入力・AIコメント・一時保存をリセット（購入確定後などに呼ぶ）
+function resetConsultTab(){
+  const n = document.getElementById('consult-name');   if(n) n.value = '';
+  const p = document.getElementById('consult-price');  if(p) p.value = '';
+  const wrap = document.getElementById('consult-ai-wrap'); if(wrap) wrap.style.display = 'none';
+  const out = document.getElementById('consult-ai-output'); if(out) out.innerHTML = '';
+  const addBtn = document.getElementById('add-wish-btn'); if(addBtn) addBtn.style.display = 'none';
+  lastConsultName = ''; lastConsultPrice = 0; lastConsultPlan = '';
+}
+
 async function runConsult(){
   const name  = document.getElementById('consult-name').value.trim();
   const price = parseInt(document.getElementById('consult-price').value)||0;
@@ -2944,7 +2954,7 @@ function openWishBuyDialog(id){
         <span style="font-size:18px;font-weight:900;color:var(--muted)">¥</span>
         <input type="number" id="wish-buy-amount" inputmode="numeric"
           value="${item.price}"
-          style="flex:1;background:#e8f0fe;border:1.5px solid #b5d0f5;border-radius:9px;padding:9px 11px;font-size:22px;font-weight:900;color:var(--text);text-align:right;font-family:var(--sans);outline:none"
+          style="flex:1;min-width:0;width:100%;box-sizing:border-box;background:#e8f0fe;border:1.5px solid #b5d0f5;border-radius:9px;padding:9px 11px;font-size:22px;font-weight:900;color:var(--text);text-align:right;font-family:var(--sans);outline:none"
           oninput="updateWishBuyPreview(${item.price})">
       </div>
       <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:10px">※ 予算額 ¥${fmt(item.price)} が入力済みです。変更できます</div>
@@ -3020,6 +3030,7 @@ function confirmWishBuy(){
   LS.set(KEY_WISHLIST, wishList);
 
   closeWishBuyDialog();
+  resetConsultTab();
   renderHome(); renderHistory(); renderWishList();
   showToast(`「${item.name}」を購入しました（自由貯金残高 ¥${fmt(walletBalance(WISH_WALLET))}）`);
 }
