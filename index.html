@@ -695,6 +695,9 @@ body {
         <button class="month-btn" onclick="changeReportMonth(1)">›</button>
       </div>
 
+      <!-- おこづかい繰越カード（常設・現在残高ベース） -->
+      <div id="rollover-card" style="margin-bottom:18px"></div>
+
       <!-- 今月の定例項目（計上） -->
       <div id="recurring-monthly" style="margin-bottom:18px"></div>
 
@@ -1007,6 +1010,9 @@ const DEFAULT_WALLETS = [
 // ほしいもの購入元の口座（自由貯金）とカテゴリ。購入は通常支出としてこの口座から記録する。
 const WISH_WALLET   = 'SBI(自由貯金)';
 const WISH_CATEGORY = 'ほしいもの';
+// おこづかい合計（毎月この額を確保。式①②の基準）。マスタv1で確定した設計値。
+// ※将来検討：現状コード定数のためアプリUIから変更不可。将来的に管理者設定としてUIから編集可能にする。
+const OKOZUKAI_TOTAL = 51000;
 // 定例項目11件（固定支出1・返済2・積立8）。連番・金額はマスタv1準拠。累計/残高は運用開始時に実機で調整。
 const DEFAULT_RECURRING = [
   {id:'rc1',  kind:'debt',    fromWallet:'代表口座(デビット)', payee:'司法書士(返済)', amount:35000, memo:'No.1 司法書士返済', total:165000, goalDate:''},
@@ -2209,7 +2215,40 @@ function fixedPostCategory(payee){
   return fixedCategoryNames().includes(payee) ? payee : '';
 }
 
+// おこづかい繰越カード（常設・現在残高ベース）
+// 式① 補充額＝OKOZUKAI_TOTAL −（おこづかい4口座の現在残高合計）
+// 式② 自由貯金へ回す額＝おこづかい4口座の現在残高合計
+function renderRolloverCard(){
+  const box = document.getElementById('rollover-card');
+  if(!box) return;
+  const okoBal = wallets
+    .filter(w => w.group === 'okozukai')
+    .reduce((s,w) => s + walletBalance(w.name), 0);
+  const toFree  = okoBal;                                  // 式②
+  const refill  = Math.max(0, OKOZUKAI_TOTAL - okoBal);    // 式①（マイナスにしない）
+  box.innerHTML = `
+    <div class="report-card">
+      <div class="report-section">
+        <div class="report-sec-label">おこづかい繰越</div>
+        <div class="report-row">
+          <div class="report-row-name">おこづかい4口座の残高合計</div>
+          <div class="report-row-right"><span class="report-row-val">¥${fmt(okoBal)}</span></div>
+        </div>
+        <div class="report-row">
+          <div class="report-row-name">→ 自由貯金へ回す額</div>
+          <div class="report-row-right"><span class="report-row-val" style="color:var(--ok)">¥${fmt(toFree)}</span></div>
+        </div>
+        <div class="report-row">
+          <div class="report-row-name">→ 翌月のおこづかい補充額</div>
+          <div class="report-row-right"><span class="report-row-val">¥${fmt(refill)}</span><span class="report-row-sub">/ ¥${fmt(OKOZUKAI_TOTAL)}</span></div>
+        </div>
+        <div style="font-size:12px;font-weight:700;color:var(--muted);line-height:1.7;margin-top:10px">給料を代表口座に入れたら、補充額（¥${fmt(refill)}）をおこづかいとして残し、浮いた分（¥${fmt(toFree)}）を自由貯金口座へ移してください。</div>
+      </div>
+    </div>`;
+}
+
 function renderRecurringMonthly(){
+  renderRolloverCard();
   const box = document.getElementById('recurring-monthly');
   if(!box) return;
   if(!recurring.length){ box.innerHTML = ''; return; }
