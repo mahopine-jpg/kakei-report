@@ -1017,9 +1017,9 @@ const WISH_CATEGORY = 'ほしいもの';
 const OKOZUKAI_TOTAL = 51000;
 // 定例項目11件（固定支出1・返済2・積立8）。連番・金額はマスタv1準拠。累計/残高は運用開始時に実機で調整。
 const DEFAULT_RECURRING = [
-  {id:'rc1',  kind:'debt',    fromWallet:'代表口座(デビット)', payee:'司法書士(返済)', category:'司法書士返済', amount:35000, memo:'No.1 司法書士返済', total:165000, goalDate:''},
-  {id:'rc4',  kind:'debt',    fromWallet:'代表口座(デビット)', payee:'親(現金)',       category:'借金返済(親へ)', amount:10000, memo:'No.4 借金返済(親へ)', total:270000, goalDate:''},
-  {id:'rc3',  kind:'fixed',   fromWallet:'代表口座(デビット)', payee:'母の口座',       category:'家賃(親へ)', amount:50000, memo:'No.3 家賃(親へ)'},
+  {id:'rc1',  kind:'debt',    fromWallet:'代表口座(デビット)', payee:'司法書士返済',   category:'司法書士返済', amount:35000, memo:'No.1 司法書士返済', total:165000, goalDate:''},
+  {id:'rc4',  kind:'debt',    fromWallet:'代表口座(デビット)', payee:'借金返済(親へ)', category:'借金返済(親へ)', amount:10000, memo:'No.4 借金返済(親へ)', total:270000, goalDate:''},
+  {id:'rc3',  kind:'fixed',   fromWallet:'代表口座(デビット)', payee:'家賃(親へ)',     category:'家賃(親へ)', amount:50000, memo:'No.3 家賃(親へ)'},
   {id:'rc2',  kind:'reserve', fromWallet:'代表口座(デビット)', toWallet:'SBI(司法書士プール)', amount:15000, memo:'No.2 司法書士プール', goal:0,      goalDate:''},
   {id:'rc5',  kind:'reserve', fromWallet:'代表口座(デビット)', toWallet:'UFJ(通信費)',         amount:2500,  memo:'No.5 通信費',        goal:0,      goalDate:''},
   {id:'rc7',  kind:'reserve', fromWallet:'代表口座(デビット)', toWallet:'SBI(バイク保険)',     amount:3500,  memo:'No.7 バイク保険',    goal:61000,  goalDate:'2027-05-31'},
@@ -1081,7 +1081,21 @@ let recurring = LS.get(KEY_RECURRING) || DEFAULT_RECURRING.map(r => ({...r}));
   });
   if(changed) LS.set(KEY_RECURRING, recurring);
 })();
-// 移行：定例項目(reserve)の移動先(toWallet)が口座一覧に無ければ補完する
+// 移行：debt/fixed の payee が旧デフォルト値のままなら新デフォルト値へ置換
+// （内容欄に分かりにくい振込先名が出る問題の救済。手修正済みの値は変えない）
+(function migrateRecurringPayee(){
+  const renameMap = {
+    'rc1': { old: '司法書士(返済)', neu: '司法書士返済' },
+    'rc4': { old: '親(現金)',       neu: '借金返済(親へ)' },
+    'rc3': { old: '母の口座',       neu: '家賃(親へ)' },
+  };
+  let changed = false;
+  recurring.forEach(it => {
+    const m = renameMap[it.id];
+    if(m && it.payee === m.old){ it.payee = m.neu; changed = true; }
+  });
+  if(changed) LS.set(KEY_RECURRING, recurring);
+})();
 // （初期口座リストの漏れで移動先が設定できなかった不整合の救済）
 (function migrateMissingWallets(){
   const names = new Set(wallets.map(w => w.name));
