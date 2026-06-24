@@ -1015,9 +1015,9 @@ const WISH_CATEGORY = 'ほしいもの';
 const OKOZUKAI_TOTAL = 51000;
 // 定例項目11件（固定支出1・返済2・積立8）。連番・金額はマスタv1準拠。累計/残高は運用開始時に実機で調整。
 const DEFAULT_RECURRING = [
-  {id:'rc1',  kind:'debt',    fromWallet:'代表口座(デビット)', payee:'司法書士(返済)', amount:35000, memo:'No.1 司法書士返済', total:165000, goalDate:''},
-  {id:'rc4',  kind:'debt',    fromWallet:'代表口座(デビット)', payee:'親(現金)',       amount:10000, memo:'No.4 借金返済(親へ)', total:270000, goalDate:''},
-  {id:'rc3',  kind:'fixed',   fromWallet:'代表口座(デビット)', payee:'母の口座',       amount:50000, memo:'No.3 家賃(親へ)'},
+  {id:'rc1',  kind:'debt',    fromWallet:'代表口座(デビット)', payee:'司法書士(返済)', category:'司法書士返済', amount:35000, memo:'No.1 司法書士返済', total:165000, goalDate:''},
+  {id:'rc4',  kind:'debt',    fromWallet:'代表口座(デビット)', payee:'親(現金)',       category:'借金返済(親へ)', amount:10000, memo:'No.4 借金返済(親へ)', total:270000, goalDate:''},
+  {id:'rc3',  kind:'fixed',   fromWallet:'代表口座(デビット)', payee:'母の口座',       category:'家賃(親へ)', amount:50000, memo:'No.3 家賃(親へ)'},
   {id:'rc2',  kind:'reserve', fromWallet:'代表口座(デビット)', toWallet:'SBI(司法書士プール)', amount:15000, memo:'No.2 司法書士プール', goal:0,      goalDate:''},
   {id:'rc5',  kind:'reserve', fromWallet:'代表口座(デビット)', toWallet:'UFJ(通信費)',         amount:2500,  memo:'No.5 通信費',        goal:0,      goalDate:''},
   {id:'rc7',  kind:'reserve', fromWallet:'代表口座(デビット)', toWallet:'SBI(バイク保険)',     amount:3500,  memo:'No.7 バイク保険',    goal:61000,  goalDate:'2027-05-31'},
@@ -1066,14 +1066,33 @@ function loadFixedCosts(){
 let fixedCosts = loadFixedCosts();
 // 定例項目（固定支出 fixed / 積立 reserve）
 let recurring = LS.get(KEY_RECURRING) || DEFAULT_RECURRING.map(r => ({...r}));
+// 移行：既存データの fixed/debt 項目に category が無ければ DEFAULT_RECURRING から補完
+(function migrateRecurringCategory(){
+  let changed = false;
+  const defMap = {};
+  DEFAULT_RECURRING.forEach(d => { if(d.category) defMap[d.id] = d.category; });
+  recurring.forEach(it => {
+    if((it.kind === 'fixed' || it.kind === 'debt') && !it.category && defMap[it.id]){
+      it.category = defMap[it.id];
+      changed = true;
+    }
+  });
+  if(changed) LS.set(KEY_RECURRING, recurring);
+})();
 
 // ── カテゴリ ──
 // 変動費カテゴリ（固定） + 固定費カテゴリ（固定費設定の項目名から動的生成）
 const VARIABLE_CATEGORIES = ['食費', '日用品', '趣味・娯楽', '交際費', '雑費'];
 // 固定費カテゴリ名の一覧（fixedCosts.items の name）
 function fixedCategoryNames(){ return fixedCosts.items.map(it => it.name); }
-// 全カテゴリ（変動費 + 固定費）
-function allCategories(){ return [...VARIABLE_CATEGORIES, ...fixedCategoryNames()]; }
+// 定例項目（fixed/debt）由来のカテゴリ名の一覧
+function recurringCategoryNames(){
+  return [...new Set(recurring
+    .filter(it => (it.kind==='fixed'||it.kind==='debt') && it.category)
+    .map(it => it.category))];
+}
+// 全カテゴリ（変動費 + 固定費 + 定例項目）
+function allCategories(){ return [...new Set([...VARIABLE_CATEGORIES, ...fixedCategoryNames(), ...recurringCategoryNames()])]; }
 // 指定カテゴリが固定費カテゴリかどうか
 function isFixedCategory(cat){ return fixedCategoryNames().includes(cat); }
 // カテゴリ選択肢を <select> に流し込む（現在値をできるだけ維持）
@@ -2405,7 +2424,7 @@ function confirmRecurringPost(){
         id: Date.now().toString(36)+Math.random().toString(36).slice(2),
         walletName: it.fromWallet,
         memo: it.payee || it.memo || (it.kind==='debt'?'返済':'固定支出'),
-        category: fixedPostCategory(it.payee),
+        category: it.category || fixedPostCategory(it.payee),
         amount: it.amount,
         recurringId: it.id,
         year: Y, month: M, day: D, ts: d.getTime()
