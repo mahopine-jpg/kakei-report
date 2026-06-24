@@ -222,6 +222,27 @@ body {
   letter-spacing: 1px; text-transform: uppercase; margin-bottom: 12px;
 }
 .field-row { display: flex; gap: 8px; margin-bottom: 10px; align-items: stretch; }
+.field-label { font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 5px; }
+/* 横並び行：ラベル(左・固定幅)＋入力欄(右・残り幅)。ラベル幅固定で全行の入力開始位置が揃う */
+.frow { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.frow > .flabel {
+  flex: 0 0 64px; font-size: 13px; font-weight: 700; color: var(--muted);
+  line-height: 1.3; padding-top: 2px;
+}
+.frow > .finput { flex: 1; min-width: 0; }
+.frow > .finput .inp-select,
+.frow > .finput .inp-memo { margin-bottom: 0; }
+/* ラベル横並び行で単独のセレクトは全幅にし、入力欄の右端を揃える */
+.frow > .finput:not(.finput-row) > .inp-select { width: 100%; box-sizing: border-box; }
+/* 移動フォームの2連セレクトは均等按分（矢印を挟んで左右対称） */
+.frow > .finput-row > .inp-select { flex: 1; min-width: 0; }
+/* 金額欄：¥マークを枠の内側に重ねる */
+.amount-wrap { position: relative; }
+.amount-wrap .yen-inside {
+  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  font-size: 20px; font-weight: 900; color: var(--muted); pointer-events: none;
+}
+.amount-wrap .inp-amount { width: 100%; box-sizing: border-box; padding-left: 34px; }
 .inp-select {
   flex: 1; background: var(--bg); border: 1.5px solid var(--border);
   border-radius: 10px; color: var(--text); font-family: var(--sans);
@@ -563,7 +584,7 @@ body {
     <div class="summary-label">おこづかい残高</div>
     <div class="summary-amount" id="total-amount">¥0<small>円</small></div>
     <div class="summary-sub" style="margin-top:8px">
-      <span>今月使用 <strong id="used-txt">¥0</strong></span>
+      <span style="color:var(--ok)">今月使用 <strong id="used-txt">¥0</strong></span>
       <span>総資産 <strong id="asset-txt">¥0</strong></span>
     </div>
   </div>
@@ -821,8 +842,9 @@ body {
 
   <!-- 支出フォーム -->
   <div id="expense-form">
-    <div class="field-row">
-      <select class="inp-select" id="wallet-select" onchange="onWalletSelectChange()"></select>
+    <div class="frow">
+      <div class="flabel">口座</div>
+      <div class="finput"><select class="inp-select" id="wallet-select" onchange="onWalletSelectChange()"></select></div>
     </div>
     <div id="receipt-btn-wrap" style="display:none;margin-bottom:10px">
       <button class="q-btn" id="receipt-btn" onclick="document.getElementById('receipt-input').click()" style="width:100%;text-align:center;color:var(--text);border-color:var(--border2)">📷 レシートを読み取る</button>
@@ -831,46 +853,78 @@ body {
     <div id="receipt-loading" style="display:none;text-align:center;padding:10px 0">
       <div class="ai-loading" style="justify-content:center"><div class="spinner"></div>レシートを読み取り中...</div>
     </div>
-    <div class="field-row" style="align-items:center">
-      <span class="yen" style="flex-shrink:0">¥</span>
-      <input type="number" class="inp-amount" id="inp-amount" placeholder="0" inputmode="numeric" oninput="checkAddBtn()" style="flex:1;min-width:0;width:100%">
+    <div class="frow">
+      <div class="flabel">金額</div>
+      <div class="finput"><div class="amount-wrap"><span class="yen-inside">¥</span><input type="number" class="inp-amount" id="inp-amount" placeholder="0" inputmode="numeric" oninput="checkAddBtn()"></div></div>
     </div>
-    <div class="field-row">
-      <select class="inp-select" id="inp-category" onchange="checkAddBtn()"></select>
+    <div class="frow">
+      <div class="flabel">カテゴリ</div>
+      <div class="finput"><select class="inp-select" id="inp-category" onchange="checkAddBtn()"></select></div>
     </div>
-    <input type="text" class="inp-memo" id="inp-memo" placeholder="内容（必須）" oninput="checkAddBtn()">
-    <input type="date" class="inp-memo" id="inp-date" style="margin-bottom:10px">
-    <button class="add-btn" id="add-tx-btn" onclick="addTx()" disabled>記帳する</button>
+    <div class="frow">
+      <div class="flabel">内容</div>
+      <div class="finput"><input type="text" class="inp-memo" id="inp-memo" placeholder="任意" oninput="checkAddBtn()"></div>
+    </div>
+    <div class="frow">
+      <div class="flabel">日付</div>
+      <div class="finput"><input type="date" class="inp-memo" id="inp-date"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <button onclick="closePanel()" style="flex:1;background:var(--bg);color:var(--muted);border:1.5px solid var(--border);border-radius:12px;padding:13px 0;font-size:15px;font-weight:700;font-family:var(--sans);cursor:pointer">キャンセル</button>
+      <button class="add-btn" id="add-tx-btn" onclick="addTx()" disabled style="flex:1.4;margin:0">記帳する</button>
+    </div>
   </div>
 
   <!-- 収入フォーム -->
   <div id="income-form" style="display:none">
-    <div class="field-row">
-      <select class="inp-select" id="income-wallet"></select>
+    <div class="frow">
+      <div class="flabel">入金先</div>
+      <div class="finput"><select class="inp-select" id="income-wallet"></select></div>
     </div>
-    <div class="field-row" style="align-items:center">
-      <span class="yen" style="flex-shrink:0">¥</span>
-      <input type="number" class="inp-amount" id="income-amount" placeholder="0" inputmode="numeric" oninput="checkIncomeBtn()" style="flex:1;min-width:0;width:100%">
+    <div class="frow">
+      <div class="flabel">金額</div>
+      <div class="finput"><div class="amount-wrap"><span class="yen-inside">¥</span><input type="number" class="inp-amount" id="income-amount" placeholder="0" inputmode="numeric" oninput="checkIncomeBtn()"></div></div>
     </div>
-    <input type="text" class="inp-memo" id="income-memo" placeholder="内容（必須・例：お小遣い、臨時収入）" oninput="checkIncomeBtn()">
-    <input type="date" class="inp-memo" id="income-date" style="margin-bottom:10px">
-    <button class="add-btn" id="add-income-btn" onclick="addIncome()" disabled>収入を記帳する</button>
+    <div class="frow">
+      <div class="flabel">内容</div>
+      <div class="finput"><input type="text" class="inp-memo" id="income-memo" placeholder="任意・例：お小遣い、臨時収入" oninput="checkIncomeBtn()"></div>
+    </div>
+    <div class="frow">
+      <div class="flabel">日付</div>
+      <div class="finput"><input type="date" class="inp-memo" id="income-date"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <button onclick="closePanel()" style="flex:1;background:var(--bg);color:var(--muted);border:1.5px solid var(--border);border-radius:12px;padding:13px 0;font-size:15px;font-weight:700;font-family:var(--sans);cursor:pointer">キャンセル</button>
+      <button class="add-btn" id="add-income-btn" onclick="addIncome()" disabled style="flex:1.4;margin:0">収入を記帳する</button>
+    </div>
   </div>
 
   <!-- 口座移動フォーム -->
   <div id="transfer-form" style="display:none">
-    <div class="field-row" style="align-items:center">
-      <select class="inp-select" id="transfer-from"></select>
-      <span class="transfer-arrow">→</span>
-      <select class="inp-select" id="transfer-to"></select>
+    <div class="frow">
+      <div class="flabel">移動</div>
+      <div class="finput finput-row" style="display:flex;align-items:center;gap:8px">
+        <select class="inp-select" id="transfer-from"></select>
+        <span class="transfer-arrow">→</span>
+        <select class="inp-select" id="transfer-to"></select>
+      </div>
     </div>
-    <div class="field-row" style="align-items:center">
-      <span class="yen" style="flex-shrink:0">¥</span>
-      <input type="number" class="inp-amount" id="transfer-amount" placeholder="0" inputmode="numeric" oninput="checkTransferBtn()" style="flex:1;min-width:0;width:100%">
+    <div class="frow">
+      <div class="flabel">金額</div>
+      <div class="finput"><div class="amount-wrap"><span class="yen-inside">¥</span><input type="number" class="inp-amount" id="transfer-amount" placeholder="0" inputmode="numeric" oninput="checkTransferBtn()"></div></div>
     </div>
-    <input type="text" class="inp-memo" id="transfer-memo" placeholder="内容（必須・例：PayPayにチャージ）" oninput="checkTransferBtn()">
-    <input type="date" class="inp-memo" id="transfer-date" style="margin-bottom:10px">
-    <button class="add-btn" id="add-transfer-btn" onclick="addTransfer()" disabled>移動する</button>
+    <div class="frow">
+      <div class="flabel">内容</div>
+      <div class="finput"><input type="text" class="inp-memo" id="transfer-memo" placeholder="任意・例：PayPayにチャージ" oninput="checkTransferBtn()"></div>
+    </div>
+    <div class="frow">
+      <div class="flabel">日付</div>
+      <div class="finput"><input type="date" class="inp-memo" id="transfer-date"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <button onclick="closePanel()" style="flex:1;background:var(--bg);color:var(--muted);border:1.5px solid var(--border);border-radius:12px;padding:13px 0;font-size:15px;font-weight:700;font-family:var(--sans);cursor:pointer">キャンセル</button>
+      <button class="add-btn" id="add-transfer-btn" onclick="addTransfer()" disabled style="flex:1.4;margin:0">移動する</button>
+    </div>
   </div>
 </div>
 
@@ -1152,7 +1206,7 @@ function renderHome(){
     card.innerHTML = `
       <div class="card-top">
         <div class="card-name">${w.name}</div>
-        <div class="card-pct ${balCls}">今月使用 ¥${fmt(spent)}</div>
+        <div class="card-pct ok">今月使用 ¥${fmt(spent)}</div>
       </div>
       <div class="card-bottom" style="margin-top:10px">
         <div class="card-remaining ${balCls}">¥${fmt(bal)}</div>
@@ -1370,8 +1424,7 @@ function switchPanelTab(tab){
 // ────────────────────────────────
 function checkIncomeBtn(){
   const v = parseInt(document.getElementById('income-amount').value)||0;
-  const memo = document.getElementById('income-memo').value.trim();
-  document.getElementById('add-income-btn').disabled = (v <= 0 || !memo);
+  document.getElementById('add-income-btn').disabled = (v <= 0);
 }
 function addIncome(){
   const wIdx    = parseInt(document.getElementById('income-wallet').value);
@@ -1379,7 +1432,6 @@ function addIncome(){
   const memo    = document.getElementById('income-memo').value.trim();
   const dateVal = document.getElementById('income-date').value;
   if(amount<=0){ document.getElementById('income-amount').focus(); return; }
-  if(!memo){ document.getElementById('income-memo').focus(); return; }
   if(!wallets[wIdx]) return;
 
   const d = dateVal ? new Date(dateVal+'T00:00:00') : now();
@@ -1420,8 +1472,7 @@ function addIncome(){
 // ────────────────────────────────
 function checkTransferBtn(){
   const v = parseInt(document.getElementById('transfer-amount').value)||0;
-  const memo = document.getElementById('transfer-memo').value.trim();
-  document.getElementById('add-transfer-btn').disabled = (v <= 0 || !memo);
+  document.getElementById('add-transfer-btn').disabled = (v <= 0);
 }
 
 function addTransfer(){
@@ -1431,7 +1482,6 @@ function addTransfer(){
   const memo     = document.getElementById('transfer-memo').value.trim();
   const dateVal  = document.getElementById('transfer-date').value;
   if(amount<=0){ document.getElementById('transfer-amount').focus(); return; }
-  if(!memo){ document.getElementById('transfer-memo').focus(); return; }
   if(fromIdx===toIdx){ showToast('移動元と移動先が同じです'); return; }
   if(!wallets[fromIdx]||!wallets[toIdx]) return;
 
@@ -1480,7 +1530,6 @@ function addTx(){
   const category = document.getElementById('inp-category').value;
   const dateVal= document.getElementById('inp-date').value;
   if(amount<=0){ document.getElementById('inp-amount').focus(); return; }
-  if(!memo){ document.getElementById('inp-memo').focus(); return; }
   if(!wallets[idx]){ return; }
 
   const d = dateVal ? new Date(dateVal+'T00:00:00') : now();
@@ -1925,7 +1974,7 @@ function saveRecurring(){
 
 function addWallet(){
   syncWalletsFromDOM();
-  wallets.push({name:'新しい口座', budget:0, group:'carry', lastBalance:0});
+  wallets.push({name:'新しい口座'+(wallets.length+1), budget:0, group:'carry', lastBalance:0});
   renderSettings();
   markWalletsDirty();
   const inputs = document.querySelectorAll('#wallet-settings .inp-name');
@@ -1945,20 +1994,54 @@ function delWalletRow(i){
 
 function saveWallets(){
   const rows = document.querySelectorAll('#wallet-settings .wallet-row');
+  const oldWallets = wallets;
   const newWallets = Array.from(rows).map((row, i)=>{
-    const prev = wallets[i] || {};
+    const prev = oldWallets[i] || {};
     return {
       ...prev, // group・lastBalance など編集欄にないプロパティを保持
       name:   row.querySelector('.inp-name').value.trim()||'口座',
       budget: parseInt(row.querySelector('.inp-budget').value)||0
     };
   });
+
+  // 同名チェック：口座名は履歴の紐付けキーなので重複は許さない
+  const names = newWallets.map(w => w.name);
+  const dup = names.find((n, i) => names.indexOf(n) !== i);
+  if(dup){
+    showToast(`「${dup}」が重複しています。口座名は重ならないようにしてください`);
+    return;
+  }
+
+  // 名前変更の検出 → 履歴のwalletName・transferPeerNameを追従させる
+  // （取引は口座名で口座を識別しているため、名前だけ変えると残高が切り離されてしまう）
+  const renames = [];
+  newWallets.forEach((w, i) => {
+    const oldName = oldWallets[i] ? oldWallets[i].name : null;
+    if(oldName && oldName !== w.name) renames.push({from: oldName, to: w.name});
+  });
+  if(renames.length){
+    const map = {};
+    renames.forEach(r => { map[r.from] = r.to; });
+    history.forEach(h => {
+      if(h.walletName && map[h.walletName] !== undefined)             h.walletName = map[h.walletName];
+      if(h.transferPeerName && map[h.transferPeerName] !== undefined) h.transferPeerName = map[h.transferPeerName];
+    });
+    LS.set(KEY_HISTORY, history);
+    // 定例項目も口座名で口座を参照しているので追従させる
+    let recChanged = false;
+    recurring.forEach(r => {
+      if(r.fromWallet && map[r.fromWallet] !== undefined){ r.fromWallet = map[r.fromWallet]; recChanged = true; }
+      if(r.toWallet   && map[r.toWallet]   !== undefined){ r.toWallet   = map[r.toWallet];   recChanged = true; }
+    });
+    if(recChanged) LS.set(KEY_RECURRING, recurring);
+  }
+
   wallets = newWallets;
   LS.set(KEY_WALLETS, wallets);
   walletsDirty = false;
   document.getElementById('save-wallets-btn').disabled = true;
-  renderHome(); renderSelect(); renderSettings();
-  showToast('✓ 口座設定を保存しました');
+  renderHome(); renderSelect(); renderSettings(); renderHistory();
+  showToast(renames.length ? '✓ 口座名を変更しました（履歴も更新）' : '✓ 口座設定を保存しました');
 }
 
 function saveApiKey(){
@@ -3345,8 +3428,8 @@ let editingTxId  = null;
 
 function checkAddBtn(){
   const v = parseInt(document.getElementById('inp-amount').value)||0;
-  const memo = document.getElementById('inp-memo').value.trim();
-  document.getElementById('add-tx-btn').disabled = (v <= 0 || !memo);
+  // 内容は任意。金額が入っていれば記帳可能。
+  document.getElementById('add-tx-btn').disabled = (v <= 0);
 }
 
 function onWalletSelectChange(){
