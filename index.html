@@ -1004,6 +1004,9 @@ const DEFAULT_WALLETS = [
   {name:'SBI(生活防衛資金)',     budget:0, group:'carry'},
   {name:'SBI(自由貯金)',         budget:0, group:'carry'},
 ];
+// ほしいもの購入元の口座（自由貯金）とカテゴリ。購入は通常支出としてこの口座から記録する。
+const WISH_WALLET   = 'SBI(自由貯金)';
+const WISH_CATEGORY = 'ほしいもの';
 // 定例項目11件（固定支出1・返済2・積立8）。連番・金額はマスタv1準拠。累計/残高は運用開始時に実機で調整。
 const DEFAULT_RECURRING = [
   {id:'rc1',  kind:'debt',    fromWallet:'代表口座(デビット)', payee:'司法書士(返済)', amount:35000, memo:'No.1 司法書士返済', total:165000, goalDate:''},
@@ -1364,6 +1367,12 @@ function renderHistory(){
         ? `<div class="h-amount-in">+¥${fmt(h.amount)}</div>`
         : `<div class="h-amount">−¥${fmt(h.amount)}</div>`;
       delBtn = `<button class="h-del" onclick="deleteBalAdj('${h.id}',event)" title="削除">×</button>`;
+    } else if(h.wishItemId){
+      // ほしいもの購入（自由貯金口座からの通常支出）。編集は紐付けを壊すため不可、削除のみ。
+      tagLabel = '🛍 ほしいもの購入 ← ' + (h.walletName || WISH_WALLET);
+      tagClass = 'h-tag h-tag-savings-buy';
+      amountHtml = `<div class="h-amount">−¥${fmt(h.amount)}</div>`;
+      delBtn = `<button class="h-del" onclick="deleteWishBuyTx('${h.id}',event)" title="削除">×</button>`;
     } else {
       tagLabel = h.walletName;
       tagClass = 'h-tag';
@@ -1371,7 +1380,7 @@ function renderHistory(){
       delBtn = `<button class="h-del" onclick="editTx('${h.id}',event)" title="編集">✎</button>
                 <button class="h-del" onclick="deleteTx('${h.id}',event)" title="削除">×</button>`;
     }
-    const catTag = (!isTransfer && !isIncome && !isSavingsW && !isSavingsAdj && !isBalAdj && h.category)
+    const catTag = (!isTransfer && !isIncome && !isSavingsW && !isSavingsAdj && !isBalAdj && !h.wishItemId && h.category)
       ? `<span class="h-tag h-tag-cat${isFixedCategory(h.category)?' h-tag-cat-fixed':''}">${h.category}</span>` : '';
     d.innerHTML = `
       <div class="h-left">
@@ -1625,6 +1634,25 @@ function deleteSavingsTx(id, amount, e){
   LS.set(KEY_SAVINGS, savings);
   renderHistory(); renderHome(); renderWishList();
   showToast('削除しました（残高を戻しました）');
+}
+
+function deleteWishBuyTx(id, e){
+  e.stopPropagation();
+  if(!confirm('このほしいもの購入記録を削除しますか？\n（自由貯金口座の残高が戻り、リストの項目は「検討中」に戻ります）')) return;
+  const tx = history.find(h=>h.id===id);
+  history = history.filter(h=>h.id!==id);
+  LS.set(KEY_HISTORY, history);
+  if(tx && tx.wishItemId){
+    const idx = wishList.findIndex(w=>w.id===tx.wishItemId);
+    if(idx >= 0){
+      wishList[idx].status = 'considering';
+      delete wishList[idx].boughtAt;
+      delete wishList[idx].actualPrice;
+      LS.set(KEY_WISHLIST, wishList);
+    }
+  }
+  renderHistory(); renderHome(); renderWishList();
+  showToast('削除しました（残高を戻し、検討中に戻しました）');
 }
 
 function deleteBalAdj(id, e){
@@ -2728,10 +2756,11 @@ function renderWishList(){
   const c = document.getElementById('wish-list-container');
   c.innerHTML = '';
 
-  // 貯金残高バナー
+  // 自由貯金口座の残高バナー（ほしいものはこの口座から購入する）
+  const freeBal = walletBalance(WISH_WALLET);
   const banner = document.createElement('div');
   banner.style.cssText = 'background:var(--ok-bg);border:1.5px solid #a8d8bc;border-radius:12px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px';
-  banner.innerHTML = `<div style="font-size:11px;font-weight:700;color:var(--ok)">🏦 貯金口座残高</div><div style="font-size:20px;font-weight:900;color:var(--ok)">¥${fmt(savings)}</div>`;
+  banner.innerHTML = `<div style="font-size:11px;font-weight:700;color:var(--ok)">🏦 自由貯金口座の残高</div><div style="font-size:20px;font-weight:900;color:var(--ok)">¥${fmt(freeBal)}</div>`;
   c.appendChild(banner);
 
   if(!wishList.length){
@@ -2766,17 +2795,17 @@ function renderWishList(){
           <button class="wish-del-btn" onclick="deleteWish('${item.id}')">×</button>
         </div>`;
     } else {
-      const canBuy = savings >= item.price;
-      const pct    = item.price > 0 ? Math.min(100, Math.round(savings / item.price * 100)) : 0;
+      const canBuy = freeBal >= item.price;
+      const pct    = item.price > 0 ? Math.min(100, Math.round(freeBal / item.price * 100)) : 0;
       const barColor = canBuy ? 'var(--ok)' : pct >= 70 ? 'var(--warn)' : 'var(--border2)';
       const pctLabel = canBuy
         ? '<span style="color:var(--ok)">購入可能</span>'
         : pct >= 70
-          ? `<span style="color:var(--warn)">あと¥${fmt(item.price - savings)}</span>`
+          ? `<span style="color:var(--warn)">あと¥${fmt(item.price - freeBal)}</span>`
           : `<span style="color:var(--muted)">${pct}%</span>`;
       const buyBtn = canBuy
         ? `<button style="flex:1;background:var(--text);color:#fff;border:none;border-radius:9px;padding:10px 0;font-size:13px;font-weight:700;font-family:var(--sans);cursor:pointer" onclick="openWishBuyDialog('${item.id}')">💳 購入する</button>`
-        : `<button style="flex:1;background:#e6e6e2;color:var(--muted);border:1.5px solid var(--border);border-radius:9px;padding:10px 0;font-size:12px;font-weight:700;font-family:var(--sans)" disabled>あと¥${fmt(item.price - savings)}で購入可能</button>`;
+        : `<button style="flex:1;background:#e6e6e2;color:var(--muted);border:1.5px solid var(--border);border-radius:9px;padding:10px 0;font-size:12px;font-weight:700;font-family:var(--sans)" disabled>あと¥${fmt(item.price - freeBal)}で購入可能</button>`;
       el.innerHTML = `
         <div class="wish-item-top">
           <div class="wish-name">${item.name}</div>
@@ -2894,6 +2923,7 @@ function openWishBuyDialog(id){
   const item = wishList.find(w=>w.id===id);
   if(!item) return;
   wishBuyItemId = id;
+  const freeBal = walletBalance(WISH_WALLET);
 
   // ダイアログ要素を動的生成
   let dlg = document.getElementById('wish-buy-dialog');
@@ -2908,7 +2938,7 @@ function openWishBuyDialog(id){
   dlg.innerHTML = `
     <div style="background:var(--surface);border-radius:16px;padding:20px 18px 16px;width:100%;max-width:420px;box-sizing:border-box" onclick="event.stopPropagation()">
       <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:5px">${item.name} を購入</div>
-      <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:14px;line-height:1.7">貯金口座から引かれます。おこづかいの集計には含まれません。</div>
+      <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:14px;line-height:1.7">自由貯金口座から引かれます。おこづかいの集計には含まれません。</div>
       <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px">実際の購入金額を入力（予算額で入力済み）</div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
         <span style="font-size:18px;font-weight:900;color:var(--muted)">¥</span>
@@ -2921,12 +2951,12 @@ function openWishBuyDialog(id){
       <div style="background:var(--bg);border-radius:9px;padding:9px 12px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">
         <div>
           <div style="font-size:11px;font-weight:700;color:var(--muted)">現在の残高</div>
-          <div style="font-size:14px;font-weight:900;color:var(--text)">¥${fmt(savings)}</div>
+          <div style="font-size:14px;font-weight:900;color:var(--text)">¥${fmt(freeBal)}</div>
         </div>
         <div style="font-size:16px;color:var(--muted)">→</div>
         <div>
           <div style="font-size:11px;font-weight:700;color:var(--muted)">購入後の残高</div>
-          <div id="wish-buy-after" style="font-size:14px;font-weight:900;color:var(--ok)">¥${fmt(savings - item.price)}</div>
+          <div id="wish-buy-after" style="font-size:14px;font-weight:900;color:var(--ok)">¥${fmt(freeBal - item.price)}</div>
         </div>
       </div>
       <div style="display:flex;gap:8px">
@@ -2940,7 +2970,7 @@ function openWishBuyDialog(id){
 
 function updateWishBuyPreview(budgetPrice){
   const v = parseInt(document.getElementById('wish-buy-amount').value)||0;
-  const after = savings - v;
+  const after = walletBalance(WISH_WALLET) - v;
   const el = document.getElementById('wish-buy-after');
   if(el){
     el.textContent = '¥' + fmt(after);
@@ -2959,20 +2989,19 @@ function confirmWishBuy(){
   if(!item) return;
   const actualPrice = parseInt(document.getElementById('wish-buy-amount').value)||0;
   if(actualPrice <= 0){ showToast('購入金額を入力してください'); return; }
-  if(actualPrice > savings){
-    if(!confirm(`購入金額（¥${fmt(actualPrice)}）が貯金残高（¥${fmt(savings)}）を超えています。
+  const freeBal = walletBalance(WISH_WALLET);
+  if(actualPrice > freeBal){
+    if(!confirm(`購入金額（¥${fmt(actualPrice)}）が自由貯金口座の残高（¥${fmt(freeBal)}）を超えています。
 残高がマイナスになりますが続けますか？`)) return;
   }
 
-  // 貯金残高を減算
-  savings -= actualPrice;
-  LS.set(KEY_SAVINGS, savings);
-
-  // 貯金引き出し履歴に記録
+  // 自由貯金口座からの通常支出として1件記録する（type を付けない＝walletBalance で -amount される）。
+  // savings 変数・KEY_SAVINGS は触らない。残高は walletBalance(WISH_WALLET) が自動的に減る。
   const d = now();
   const tx = {
     id: Date.now().toString(36)+Math.random().toString(36).slice(2),
-    type: 'savings_withdraw',
+    walletName: WISH_WALLET,
+    category: WISH_CATEGORY,
     wishItemId: item.id,
     memo: item.name,
     amount: actualPrice,
@@ -2992,7 +3021,7 @@ function confirmWishBuy(){
 
   closeWishBuyDialog();
   renderHome(); renderHistory(); renderWishList();
-  showToast(`「${item.name}」を購入しました（残高 ¥${fmt(savings)}）`);
+  showToast(`「${item.name}」を購入しました（自由貯金残高 ¥${fmt(walletBalance(WISH_WALLET))}）`);
 }
 
 // ════════════════════════════════
