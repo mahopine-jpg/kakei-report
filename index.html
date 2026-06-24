@@ -874,41 +874,22 @@ body {
 </div>
 
 <!-- ════ SAVINGS MODAL ════ -->
-<div id="savings-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:300;align-items:flex-end;justify-content:center" onclick="closeSavingsModal(event)">
-  <div id="savings-modal" style="background:var(--surface);border-radius:20px 20px 0 0;padding:20px 20px 44px;width:100%;max-width:480px;box-sizing:border-box" onclick="event.stopPropagation()">
+<!-- 残高調整モーダル（全口座共通。利息・手数料・初期残高投入・実残高合わせ用） -->
+<div id="baladj-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:300;align-items:flex-end;justify-content:center" onclick="closeBalAdjModal(event)">
+  <div id="baladj-modal" style="background:var(--surface);border-radius:20px 20px 0 0;padding:20px 20px 44px;width:100%;max-width:480px;box-sizing:border-box" onclick="event.stopPropagation()">
     <div style="width:36px;height:3px;background:var(--border2);border-radius:2px;margin:0 auto 16px"></div>
-    <div id="savings-modal-title" style="font-size:13px;font-weight:700;color:var(--muted);letter-spacing:1px;margin-bottom:14px">貯金口座から引き出す</div>
-    <!-- 引き出しフォーム -->
-    <div id="savings-withdraw-form">
-      <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px">現在の残高：<span id="sw-current">¥0</span></div>
-      <div class="quick-row" style="margin-bottom:8px">
-        <button class="q-btn" onclick="swq(1000)">¥1,000</button>
-        <button class="q-btn" onclick="swq(3000)">¥3,000</button>
-        <button class="q-btn" onclick="swq(5000)">¥5,000</button>
-        <button class="q-btn" onclick="swq(10000)">¥10,000</button>
-        <button class="q-btn" onclick="swq(30000)">¥30,000</button>
-      </div>
-      <div class="field-row" style="align-items:center;margin-bottom:8px">
-        <span class="yen" style="flex-shrink:0">¥</span>
-        <input type="number" class="inp-amount" id="sw-amount" placeholder="0" inputmode="numeric" oninput="swCheckBtn()" style="flex:1;min-width:0;width:100%">
-      </div>
-      <input type="text" class="inp-memo" id="sw-memo" placeholder="メモ（任意）" style="margin-bottom:8px">
-      <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:4px">引き出し後の残高：<span id="sw-after" style="color:var(--text)">—</span></div>
-      <button class="add-btn" id="sw-btn" onclick="doSavingsWithdraw()" disabled style="margin-top:10px">引き出す</button>
+    <div style="font-size:13px;font-weight:700;color:var(--muted);letter-spacing:1px;margin-bottom:6px"><span id="baladj-wallet-name">口座</span> の残高調整</div>
+    <div style="font-size:13px;font-weight:500;color:var(--muted);margin-bottom:12px;line-height:1.7">実際の口座残高を入力してください。利息・手数料・初期残高の投入などで生じた差額が<strong style="color:var(--text)">「残高調整」</strong>として記録に残ります。</div>
+    <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px">現在のアプリ残高：<span id="ba-current">¥0</span></div>
+    <div class="field-row" style="align-items:center;margin-bottom:8px">
+      <span class="yen" style="flex-shrink:0">¥</span>
+      <input type="number" class="inp-amount" id="ba-amount" placeholder="実際の残高を入力" inputmode="numeric" oninput="baCheckBtn()" style="flex:1;min-width:0;width:100%">
     </div>
-    <!-- 残高修正フォーム -->
-    <div id="savings-adjust-form" style="display:none">
-      <div style="font-size:13px;font-weight:500;color:var(--muted);margin-bottom:10px;line-height:1.7">銀行口座の実際の残高を入力してください。差額は<strong style="color:var(--text)">「使途不明金」</strong>として記録に残ります。</div>
-      <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px">現在のアプリ残高：<span id="sa-current">¥0</span></div>
-      <div class="field-row" style="align-items:center;margin-bottom:8px">
-        <span class="yen" style="flex-shrink:0">¥</span>
-        <input type="number" class="inp-amount" id="sa-amount" placeholder="銀行口座の残高を入力" inputmode="numeric" oninput="saCheckBtn()" style="flex:1;min-width:0;width:100%">
-      </div>
-      <div id="sa-diff-row" style="display:none;font-size:12px;font-weight:700;margin-bottom:8px;padding:9px 12px;border-radius:8px;background:var(--bg)">
-        <span id="sa-diff-text"></span>
-      </div>
-      <button class="add-btn" id="sa-btn" onclick="doSavingsAdjust()" disabled style="margin-top:4px">この金額に修正する</button>
+    <input type="text" class="inp-memo" id="ba-memo" placeholder="理由（任意・例：利息、振込手数料、初期残高）" style="margin-bottom:8px">
+    <div id="ba-diff-row" style="display:none;font-size:12px;font-weight:700;margin-bottom:8px;padding:9px 12px;border-radius:8px;background:var(--bg)">
+      <span id="ba-diff-text"></span>
     </div>
+    <button class="add-btn" id="ba-btn" onclick="doBalanceAdjust()" disabled style="margin-top:4px">この金額に調整する</button>
   </div>
 </div>
 
@@ -987,7 +968,8 @@ const DEFAULT_FIXED = { items:[
   {id:'medical', name:'医療費',     amount:3500},
 ], email:'' };
 
-let wallets = LS.get(KEY_WALLETS) || DEFAULT_WALLETS.map(w => ({...w}));
+let wallets = (LS.get(KEY_WALLETS) || DEFAULT_WALLETS.map(w => ({...w})))
+  .map(w => ({ lastBalance: 0, ...w })); // lastBalance: フェーズDでα移行時に残高を焼き付ける保険フィールド
 let history = LS.get(KEY_HISTORY) || [];
 let savings = LS.get(KEY_SAVINGS) || 0;
 let monthlySummaries = LS.get(KEY_SUMMARY) || [];
@@ -1046,7 +1028,7 @@ function fixedSpentInMonth(y, m){
   const target = ym(y, m);
   return history.filter(h => {
     if(ym(h.year, h.month) !== target) return false;
-    if(h.rolledOver || h.type === 'transfer' || h.type === 'income') return false;
+    if(h.rolledOver || h.type === 'transfer' || h.type === 'income' || h.type === 'balance_adjust') return false;
     if(h.category) return isFixedCategory(h.category);
     // 旧データ（categoryなし）はメモ照合でフォールバック
     return fixedCosts.items.some(it => h.memo && h.memo.includes(it.name));
@@ -1062,7 +1044,7 @@ function fixedSpentByItem(y, m){
   return fixedCosts.items.map(it => {
     const spent = history.filter(h => {
       if(ym(h.year, h.month) !== target) return false;
-      if(h.rolledOver || h.type === 'transfer' || h.type === 'income') return false;
+      if(h.rolledOver || h.type === 'transfer' || h.type === 'income' || h.type === 'balance_adjust') return false;
       // タバコは専用判定（メモ照合）。それ以外はカテゴリ優先＋メモフォールバック
       if(isTobacco(it.name)) return isTobacco(h.memo) || h.category === it.name;
       if(h.category) return h.category === it.name;
@@ -1096,6 +1078,20 @@ function todayStr(){
 }
 function currentYM(){ const d=now(); return ym(d.getFullYear(), d.getMonth()+1); }
 
+// 全期間の保持残高（B-1: 残高保持モデル / 方式β＝履歴から算出）
+// 収入・移動in・残高調整(増)で増え、支出・移動out・残高調整(減)で減る。
+// rolledOver はおこづかいリセット用の調整レコードなので残高には算入する（除外しない）。
+function walletBalance(walletName){
+  return history
+    .filter(h => h.walletName === walletName)
+    .reduce((s,h) => {
+      if(h.type === 'income') return s + h.amount;
+      if(h.type === 'transfer') return s + (h.transferDir === 'in' ? h.amount : -h.amount);
+      if(h.type === 'balance_adjust') return s + h.diff; // diff は符号付き
+      // 通常の支出
+      return s - h.amount;
+    }, 0);
+}
 // spent for a wallet name in current month
 function spentThisMonth(walletName){
   const cym = currentYM();
@@ -1104,6 +1100,7 @@ function spentThisMonth(walletName){
     .reduce((s,h) => {
       if(h.type==='transfer' && h.transferDir==='in') return s - h.amount;
       if(h.type==='income') return s - h.amount;
+      if(h.type==='balance_adjust') return s; // 残高調整は使用額に含めない
       return s + h.amount;
     }, 0);
 }
@@ -1117,6 +1114,7 @@ function spentInMonth(walletName, y, m){
     .reduce((s,h) => {
       if(h.type==='transfer' && h.transferDir==='in') return s - h.amount;
       if(h.type==='income') return s - h.amount;
+      if(h.type==='balance_adjust') return s; // 残高調整は使用額に含めない
       return s + h.amount;
     }, 0);
 }
@@ -1125,65 +1123,48 @@ function spentInMonth(walletName, y, m){
 //  Render Home
 // ════════════════════════════════
 function renderHome(){
-  let totalBudget=0, totalSpent=0;
+  // B-1: 保持残高モデル。総額＝全口座の保持残高合計。
+  let totalBal = 0, monthSpent = 0;
   wallets.forEach(w => {
-    totalBudget += w.budget;
-    totalSpent  += spentThisMonth(w.name);
+    totalBal   += walletBalance(w.name);
+    monthSpent += spentThisMonth(w.name); // 当月の使用額（バー参考表示用）
   });
-  const totalRem = totalBudget - totalSpent;
-  const pctUsed  = totalBudget>0 ? Math.round(totalSpent/totalBudget*100) : 0;
 
-  document.getElementById('total-amount').innerHTML = `¥${fmt(totalRem)}<small>円</small>`;
-  document.getElementById('total-bar').style.width  = Math.max(0,100-pctUsed)+'%';
-  document.getElementById('used-txt').textContent   = '¥'+fmt(totalSpent);
-  document.getElementById('budget-txt').textContent = '¥'+fmt(totalBudget);
-
-  // 貯金口座カード
-  const savingsCard = document.createElement('div');
-  savingsCard.className = 'card savings-card';
-  savingsCard.innerHTML = `
-    <div class="card-top">
-      <div class="card-name">🏦 貯金口座</div>
-      <div class="card-pct ok">積立</div>
-    </div>
-    <div class="card-bottom" style="margin-top:10px">
-      <div class="card-remaining ok">¥${fmt(savings)}</div>
-      <div class="card-budget">累計残金</div>
-    </div>
-    <hr style="border:none;border-top:1px solid var(--border);margin:12px 0 10px">
-    <div style="display:flex;gap:8px">
-      <button onclick="openSavingsWithdraw(event)" style="flex:1;background:var(--text);color:#fff;border:none;border-radius:10px;padding:9px 0;font-size:13px;font-weight:700;font-family:var(--sans);cursor:pointer">💸 引き出す</button>
-      <button onclick="openSavingsAdjust(event)" style="flex:1;background:var(--bg);color:var(--muted);border:1.5px solid var(--border);border-radius:10px;padding:9px 0;font-size:13px;font-weight:700;font-family:var(--sans);cursor:pointer">✏️ 残高修正</button>
-    </div>`;
+  document.getElementById('total-amount').innerHTML = `¥${fmt(totalBal)}<small>円</small>`;
+  document.getElementById('total-bar').style.width  = '100%';
+  document.getElementById('used-txt').textContent   = '¥'+fmt(monthSpent);
+  document.getElementById('budget-txt').textContent = '¥'+fmt(totalBal);
 
   const container = document.getElementById('cards');
   container.innerHTML = '';
-  container.appendChild(savingsCard);
   wallets.forEach((w,i) => {
+    const bal   = walletBalance(w.name);
     const spent = spentThisMonth(w.name);
-    const rem   = w.budget - spent;
-    const pct   = w.budget>0 ? Math.min(100,Math.round(spent/w.budget*100)) : 0;
-    const c     = cls(pct);
+    const balCls = bal < 0 ? 'danger' : 'ok';
     const card  = document.createElement('div');
     card.className = 'card';
     card.innerHTML = `
       <div class="card-top">
         <div class="card-name">${w.name}</div>
-        <div class="card-pct ${c}">${pct}%使用</div>
+        <div class="card-pct ${balCls}">今月使用 ¥${fmt(spent)}</div>
       </div>
-      <div class="bar-wrap2"><div class="bar-fill2 ${fCls(pct)}" style="width:${pct}%"></div></div>
-      <div class="card-bottom">
-        <div class="card-remaining ${c}">¥${fmt(rem)}</div>
-        <div class="card-budget">/ ¥${fmt(w.budget)}</div>
+      <div class="card-bottom" style="margin-top:10px">
+        <div class="card-remaining ${balCls}">¥${fmt(bal)}</div>
+        <div class="card-budget">保持残高</div>
+      </div>
+      <hr style="border:none;border-top:1px solid var(--border);margin:12px 0 10px">
+      <div style="display:flex;gap:8px">
+        <button onclick="openTxForWallet(${i},event)" style="flex:1;background:var(--text);color:#fff;border:none;border-radius:10px;padding:9px 0;font-size:13px;font-weight:700;font-family:var(--sans);cursor:pointer">＋ 記帳</button>
+        <button onclick="openBalanceAdjust(${i},event)" style="flex:1;background:var(--bg);color:var(--muted);border:1.5px solid var(--border);border-radius:10px;padding:9px 0;font-size:13px;font-weight:700;font-family:var(--sans);cursor:pointer">✏️ 残高調整</button>
       </div>`;
-    card.onclick = () => {
-      document.querySelectorAll('.card').forEach(c=>c.classList.remove('selected'));
-      card.classList.add('selected');
-      document.getElementById('wallet-select').value = i;
-      openPanel();
-    };
     container.appendChild(card);
   });
+}
+// 口座カードの「記帳」ボタン：その口座を選んで記帳パネルを開く
+function openTxForWallet(i, e){
+  if(e) e.stopPropagation();
+  document.getElementById('wallet-select').value = i;
+  openPanel();
 }
 
 // ════════════════════════════════
@@ -1278,6 +1259,7 @@ function renderHistory(){
     const isIncome      = h.type === 'income';
     const isSavingsW    = h.type === 'savings_withdraw';
     const isSavingsAdj  = h.type === 'savings_adjust';
+    const isBalAdj      = h.type === 'balance_adjust';
     const isIn = isTransfer && h.transferDir === 'in';
     let tagLabel, tagClass, amountHtml, delBtn;
     if(isTransfer){
@@ -1306,6 +1288,14 @@ function renderHistory(){
         ? `<div class="h-amount-in">+¥${fmt(h.amount)}</div>`
         : `<div class="h-amount">−¥${fmt(h.amount)}</div>`;
       delBtn = '';
+    } else if(isBalAdj){
+      const isIncrease = h.diff > 0;
+      tagLabel = (isIncrease ? '✏️ 残高調整（増）' : '✏️ 残高調整（減）') + ` ${h.walletName}`;
+      tagClass = 'h-tag h-tag-savings' + (isIncrease ? '-adj-up' : '');
+      amountHtml = isIncrease
+        ? `<div class="h-amount-in">+¥${fmt(h.amount)}</div>`
+        : `<div class="h-amount">−¥${fmt(h.amount)}</div>`;
+      delBtn = `<button class="h-del" onclick="deleteBalAdj('${h.id}',event)" title="削除">×</button>`;
     } else {
       tagLabel = h.walletName;
       tagClass = 'h-tag';
@@ -1313,7 +1303,7 @@ function renderHistory(){
       delBtn = `<button class="h-del" onclick="editTx('${h.id}',event)" title="編集">✎</button>
                 <button class="h-del" onclick="deleteTx('${h.id}',event)" title="削除">×</button>`;
     }
-    const catTag = (!isTransfer && !isIncome && !isSavingsW && !isSavingsAdj && h.category)
+    const catTag = (!isTransfer && !isIncome && !isSavingsW && !isSavingsAdj && !isBalAdj && h.category)
       ? `<span class="h-tag h-tag-cat${isFixedCategory(h.category)?' h-tag-cat-fixed':''}">${h.category}</span>` : '';
     d.innerHTML = `
       <div class="h-left">
@@ -1572,6 +1562,15 @@ function deleteSavingsTx(id, amount, e){
   LS.set(KEY_SAVINGS, savings);
   renderHistory(); renderHome(); renderWishList();
   showToast('削除しました（残高を戻しました）');
+}
+
+function deleteBalAdj(id, e){
+  e.stopPropagation();
+  if(!confirm('この残高調整を取り消しますか？\n（残高は調整前の値に戻ります）')) return;
+  history = history.filter(h=>h.id!==id);
+  LS.set(KEY_HISTORY, history);
+  renderHistory(); renderHome();
+  showToast('残高調整を取り消しました');
 }
 
 let editingIncomeId = null;
@@ -2029,7 +2028,7 @@ function resetEverything(){
   localStorage.clear();
   history=[]; savings=0; monthlySummaries=[]; wishList=[]; recurring=DEFAULT_RECURRING.map(r => ({...r}));
   fixedCosts = { items: DEFAULT_FIXED.items.map(it => ({...it})), email:'' };
-  wallets = DEFAULT_WALLETS.map(w => ({...w}));
+  wallets = DEFAULT_WALLETS.map(w => ({ lastBalance: 0, ...w }));
   LS.set(KEY_RECURRING, recurring); LS.set(KEY_FIXED, fixedCosts); LS.set(KEY_WALLETS, wallets);
   renderHome(); renderHistory(); renderSummaryList(); renderSelect(); renderSettings();
   showToast('完全リセットしました');
@@ -2313,7 +2312,7 @@ function renderWeeklyStats(){
   // 今週の支出（移動のoutは除外、支出のみ）
   const weekTx = history.filter(h => {
     if(h.rolledOver) return false;
-    if(h.type==='transfer'||h.type==='income') return false;
+    if(h.type==='transfer'||h.type==='income'||h.type==='balance_adjust') return false;
     const d = new Date(h.year, h.month-1, h.day);
     return d >= mon && d <= sun;
   });
@@ -2321,7 +2320,7 @@ function renderWeeklyStats(){
 
   // 今月の支出合計
   const monthSpent = history
-    .filter(h => ym(h.year,h.month)===cym && !h.rolledOver && h.type!=='transfer' && h.type!=='income')
+    .filter(h => ym(h.year,h.month)===cym && !h.rolledOver && h.type!=='transfer' && h.type!=='income' && h.type!=='balance_adjust')
     .reduce((s,h)=>s+h.amount,0);
 
   // 残高
@@ -2378,7 +2377,7 @@ async function runWeeklyCheck(){
   const monthPct     = Math.round(elapsedDays / daysInMonth2 * 100);
 
   const weekTx = history.filter(h => {
-    if(h.rolledOver||h.type==='transfer'||h.type==='income') return false;
+    if(h.rolledOver||h.type==='transfer'||h.type==='income'||h.type==='balance_adjust') return false;
     const dt = new Date(h.year, h.month-1, h.day);
     return dt >= mon && dt <= sun;
   });
@@ -2463,7 +2462,7 @@ function shareWeeklyMail(){
   const totalSpentSoFar = wallets.reduce((s,w)=>s+spentThisMonth(w.name),0);
   const totalRem    = totalBudget - totalSpentSoFar;
   const weekTx = history.filter(h => {
-    if(h.rolledOver||h.type==='transfer'||h.type==='income') return false;
+    if(h.rolledOver||h.type==='transfer'||h.type==='income'||h.type==='balance_adjust') return false;
     const dt = new Date(h.year, h.month-1, h.day);
     return dt >= mon && dt <= sun;
   });
@@ -2700,123 +2699,74 @@ function deleteWish(id){
 }
 
 // ════════════════════════════════
-//  貯金口座モーダル（引き出し・残高修正）
+//  残高調整モーダル（全口座共通）
 // ════════════════════════════════
-function openSavingsWithdraw(e){
+let baladjWalletIdx = null;
+
+function openBalanceAdjust(i, e){
   if(e) e.stopPropagation();
-  document.getElementById('savings-modal-title').textContent = '貯金口座から引き出す';
-  document.getElementById('savings-withdraw-form').style.display = 'block';
-  document.getElementById('savings-adjust-form').style.display = 'none';
-  document.getElementById('sw-current').textContent = '¥' + fmt(savings);
-  document.getElementById('sw-amount').value = '';
-  document.getElementById('sw-memo').value = '';
-  document.getElementById('sw-after').textContent = '—';
-  document.getElementById('sw-btn').disabled = true;
-  const overlay = document.getElementById('savings-modal-overlay');
-  overlay.style.display = 'flex';
+  baladjWalletIdx = i;
+  const w = wallets[i];
+  if(!w) return;
+  document.getElementById('baladj-wallet-name').textContent = w.name;
+  document.getElementById('ba-current').textContent = '¥' + fmt(walletBalance(w.name));
+  document.getElementById('ba-amount').value = '';
+  document.getElementById('ba-memo').value = '';
+  document.getElementById('ba-diff-row').style.display = 'none';
+  document.getElementById('ba-btn').disabled = true;
+  document.getElementById('baladj-modal-overlay').style.display = 'flex';
 }
 
-function openSavingsAdjust(e){
-  if(e) e.stopPropagation();
-  document.getElementById('savings-modal-title').textContent = '残高を修正する';
-  document.getElementById('savings-withdraw-form').style.display = 'none';
-  document.getElementById('savings-adjust-form').style.display = 'block';
-  document.getElementById('sa-current').textContent = '¥' + fmt(savings);
-  document.getElementById('sa-amount').value = '';
-  document.getElementById('sa-diff-row').style.display = 'none';
-  document.getElementById('sa-btn').disabled = true;
-  const overlay = document.getElementById('savings-modal-overlay');
-  overlay.style.display = 'flex';
+function closeBalAdjModal(e){
+  if(e && e.target !== document.getElementById('baladj-modal-overlay')) return;
+  document.getElementById('baladj-modal-overlay').style.display = 'none';
+  baladjWalletIdx = null;
 }
 
-function closeSavingsModal(e){
-  if(e && e.target !== document.getElementById('savings-modal-overlay')) return;
-  document.getElementById('savings-modal-overlay').style.display = 'none';
-}
-
-function swq(v){
-  document.getElementById('sw-amount').value = v;
-  swCheckBtn();
-}
-
-function swCheckBtn(){
-  const v = parseInt(document.getElementById('sw-amount').value)||0;
-  document.getElementById('sw-btn').disabled = v <= 0;
-  if(v > 0){
-    const after = savings - v;
-    document.getElementById('sw-after').textContent = '¥' + fmt(after);
-    document.getElementById('sw-after').style.color = after < 0 ? 'var(--danger)' : 'var(--text)';
-  } else {
-    document.getElementById('sw-after').textContent = '—';
-  }
-}
-
-function doSavingsWithdraw(){
-  const amount = parseInt(document.getElementById('sw-amount').value)||0;
-  const memo   = document.getElementById('sw-memo').value.trim() || '引き出し';
-  if(amount <= 0) return;
-  if(!confirm(`貯金口座から ¥${fmt(amount)} 引き出しますか？
-
-残高：¥${fmt(savings)} → ¥${fmt(savings - amount)}`)) return;
-
-  savings -= amount;
-  LS.set(KEY_SAVINGS, savings);
-
-  // 貯金引き出し履歴に記録（type:'savings_withdraw'）
-  const d = now();
-  const tx = {
-    id: Date.now().toString(36)+Math.random().toString(36).slice(2),
-    type: 'savings_withdraw',
-    memo,
-    amount,
-    year: d.getFullYear(), month: d.getMonth()+1, day: d.getDate(), ts: d.getTime()
-  };
-  history.push(tx);
-  LS.set(KEY_HISTORY, history);
-
-  document.getElementById('savings-modal-overlay').style.display = 'none';
-  renderHome(); renderHistory(); renderWishList();
-  showToast(`¥${fmt(amount)} 引き出しました（残高 ¥${fmt(savings)}）`);
-}
-
-function saCheckBtn(){
-  const v = parseInt(document.getElementById('sa-amount').value);
-  const diffRow = document.getElementById('sa-diff-row');
-  const diffTxt = document.getElementById('sa-diff-text');
-  if(isNaN(v) || v < 0){
+function baCheckBtn(){
+  if(baladjWalletIdx == null) return;
+  const cur = walletBalance(wallets[baladjWalletIdx].name);
+  const v = parseInt(document.getElementById('ba-amount').value);
+  const diffRow = document.getElementById('ba-diff-row');
+  const diffTxt = document.getElementById('ba-diff-text');
+  if(isNaN(v)){
     diffRow.style.display = 'none';
-    document.getElementById('sa-btn').disabled = true;
+    document.getElementById('ba-btn').disabled = true;
     return;
   }
-  const diff = v - savings;
+  const diff = v - cur;
   diffRow.style.display = 'block';
   if(diff < 0){
-    diffTxt.innerHTML = `差額 <strong style="color:var(--danger)">−¥${fmt(Math.abs(diff))}</strong> が「使途不明金」として記録されます`;
+    diffTxt.innerHTML = `差額 <strong style="color:var(--danger)">−¥${fmt(Math.abs(diff))}</strong> が「残高調整（減）」として記録されます`;
   } else if(diff > 0){
     diffTxt.innerHTML = `差額 <strong style="color:var(--ok)">+¥${fmt(diff)}</strong> が「残高調整（増）」として記録されます`;
   } else {
     diffTxt.innerHTML = '<span style="color:var(--muted)">差額なし（変更ありません）</span>';
   }
-  document.getElementById('sa-btn').disabled = (diff === 0);
+  document.getElementById('ba-btn').disabled = (diff === 0);
 }
 
-function doSavingsAdjust(){
-  const newAmt = parseInt(document.getElementById('sa-amount').value);
-  if(isNaN(newAmt) || newAmt < 0) return;
-  const diff = newAmt - savings;
+function doBalanceAdjust(){
+  if(baladjWalletIdx == null) return;
+  const w = wallets[baladjWalletIdx];
+  const cur = walletBalance(w.name);
+  const newAmt = parseInt(document.getElementById('ba-amount').value);
+  if(isNaN(newAmt)) return;
+  const diff = newAmt - cur;
   if(diff === 0) return;
+  const reason = document.getElementById('ba-memo').value.trim();
+  const label = (diff < 0 ? '残高調整（減）' : '残高調整（増）') + (reason ? '：' + reason : '');
 
-  const label = diff < 0 ? '使途不明金' : '残高調整（増）';
-  if(!confirm(`貯金残高を ¥${fmt(savings)} → ¥${fmt(newAmt)} に修正します。
-差額 ¥${fmt(Math.abs(diff))} は「${label}」として記録されます。
+  if(!confirm(`${w.name} の残高を ¥${fmt(cur)} → ¥${fmt(newAmt)} に調整します。
+差額 ¥${fmt(Math.abs(diff))} は記録に残ります。
 
 よろしいですか？`)) return;
 
   const d = now();
   const tx = {
     id: Date.now().toString(36)+Math.random().toString(36).slice(2),
-    type: 'savings_adjust',
-    adjustType: diff < 0 ? 'unknown' : 'increase',
+    type: 'balance_adjust',
+    walletName: w.name,
     memo: label,
     amount: Math.abs(diff),
     diff,
@@ -2825,12 +2775,10 @@ function doSavingsAdjust(){
   history.push(tx);
   LS.set(KEY_HISTORY, history);
 
-  savings = newAmt;
-  LS.set(KEY_SAVINGS, savings);
-
-  document.getElementById('savings-modal-overlay').style.display = 'none';
+  document.getElementById('baladj-modal-overlay').style.display = 'none';
+  baladjWalletIdx = null;
   renderHome(); renderHistory();
-  showToast(`残高を ¥${fmt(newAmt)} に修正しました`);
+  showToast(`${w.name} の残高を ¥${fmt(newAmt)} に調整しました`);
 }
 
 // ════════════════════════════════
@@ -2963,7 +2911,7 @@ async function runMonthlyReport(){
   const btn = document.getElementById('report-btn');
   btn.disabled = true;
   const target = ym(reportYear, reportMonth);
-  const monthHistory = history.filter(h => ym(h.year,h.month)===target && h.type!=='transfer' && h.type!=='income');
+  const monthHistory = history.filter(h => ym(h.year,h.month)===target && h.type!=='transfer' && h.type!=='income' && h.type!=='balance_adjust');
   document.getElementById('report-output').style.display = 'block';
 
   // メモ別集計
@@ -3177,6 +3125,8 @@ function recordToRow(h){
   } else if(h.type === 'savings_adjust'){
     kind = '貯金調整'; account = '貯金口座';
     sign = (h.adjustType === 'unknown') ? -h.amount : h.amount;
+  } else if(h.type === 'balance_adjust'){
+    kind = '残高調整'; sign = h.diff;
   } else {
     // type なし＝通常支出
     kind = '支出'; category = h.category || ''; sign = -h.amount;
