@@ -1216,11 +1216,28 @@ function okozukaiBalance(){
     .filter(w => w.group === 'okozukai')
     .reduce((s,w) => s + walletBalance(w.name), 0);
 }
-// おこづかい4口座の今月支出合計（純粋な支出のみ）
+// おこづかい4口座の支出合計（指定年月・純粋なおこづかい消費のみ）
+// 4口座から出ても、定例項目（司法書士返済・借金返済・家賃など recurringId 付き）は
+// おこづかいの消費ではないので除外する。おこづかい内の固定費（ガソリン/タバコ/定期/医療）は
+// 都度記帳＝recurringId なしなので含まれる。
+function okozukaiSpentInMonth(y, m){
+  const target = ym(y, m);
+  const cym = currentYM();
+  const isCurrentMonth = target === cym;
+  const okoNames = new Set(wallets.filter(w => w.group === 'okozukai').map(w => w.name));
+  return history
+    .filter(h => okoNames.has(h.walletName) && ym(h.year,h.month) === target && (isCurrentMonth ? !h.rolledOver : true))
+    .reduce((s,h) => {
+      // 収入・口座移動・残高調整は消費に含めない
+      if(h.type==='transfer' || h.type==='income' || h.type==='balance_adjust') return s;
+      // 定例項目（返済・家賃など）はおこづかいの消費ではない
+      if(h.recurringId) return s;
+      return s + h.amount;
+    }, 0);
+}
+// おこづかい4口座の今月の純粋なおこづかい消費
 function okozukaiSpentThisMonth(){
-  return wallets
-    .filter(w => w.group === 'okozukai')
-    .reduce((s,w) => s + spentThisMonth(w.name), 0);
+  return okozukaiSpentInMonth(now().getFullYear(), now().getMonth()+1);
 }
 // 自由費の月額枠＝おこづかい総額(51,000)−おこづかい固定費合計
 function freeMonthlyBudget(){ return Math.max(0, OKOZUKAI_TOTAL - fixedTotal()); }
