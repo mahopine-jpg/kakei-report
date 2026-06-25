@@ -711,7 +711,7 @@ body {
       <div id="report-output" style="display:none">
         <div class="report-card" style="margin-bottom:8px">
           <div class="report-section">
-            <div class="report-sec-label">支出内訳（メモ別）</div>
+            <div class="report-sec-label">月次の内訳（全体）</div>
             <div id="spend-breakdown"></div>
           </div>
           <div class="report-section">
@@ -3252,7 +3252,9 @@ function changeReportMonth(delta){
   document.getElementById('report-btn').disabled=false;
 }
 
+let monthlyReportRunToken = 0;
 async function runMonthlyReport(){
+  const myToken = ++monthlyReportRunToken; // 最新の実行だけがAI結果を書き込めるようにする
   const btn = document.getElementById('report-btn');
   btn.disabled = true;
   const target = ym(reportYear, reportMonth);
@@ -3450,12 +3452,15 @@ ${wishSection}${savingsNote}
       body: JSON.stringify({model:'claude-sonnet-4-6',max_tokens:900,messages:[{role:'user',content:prompt}]})
     });
     const data = await res.json();
+    if(myToken !== monthlyReportRunToken) return; // より新しい実行が始まっていれば古い結果は破棄
     if(data.error) throw new Error(data.error.message);
     const text = data.content?.find(b=>b.type==='text')?.text||'';
     aiBox.innerHTML = `<div class="ai-box">${text.replace(/\n/g,'<br>')}</div>`;
   } catch(e){
+    if(myToken !== monthlyReportRunToken) return;
     aiBox.innerHTML = `<div class="ai-box" style="color:var(--danger)">エラー: ${e.message}</div>`;
   }
+  if(myToken !== monthlyReportRunToken) return;
   btn.disabled = false;
   showCloseMonthBtn();
 }
