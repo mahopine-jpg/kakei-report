@@ -1248,6 +1248,72 @@ function okozukaiSpentThisMonth(){
 // 自由費の月額枠＝おこづかい総額(51,000)−おこづかい固定費合計
 function freeMonthlyBudget(){ return Math.max(0, OKOZUKAI_TOTAL - fixedTotal()); }
 
+// ── 月次全体ビューの集計（フェーズD-1：案A・純支出ベース）──
+// その月の全レコードを次の区分に振り分けて返す。
+//   income           収入（給料など）
+//   fixed            おこづかいの固定費（ガソリン/タバコ/定期/医療＝固定費マスタのカテゴリ。非定例の支出）
+//   free             自由費（おこづかい支出のうち固定費でないもの。非定例）
+//   recurringPay     定例の支払い（recurringId 付きの「支出」＝家賃・司法書士返済・借金返済など）
+//   transferOut      積立・振替（recurringId 付きの「移動出」＝代表→各口座への配分）
+//   carrySpend       振替口座からの実支出（carry グループ口座での支出。例：UFJ通信費の引き落とし）
+//   miscTransfer     その他の振替（recurringId なしの「移動出」＝臨時。例：給料余剰金→生活防衛資金）
+// 口座間移動（transferOut/miscTransfer）は家計の外に出ていないので純支出には含めない。
+// 純支出 netSpend = fixed + free + recurringPay + carrySpend。
+function buildMonthlyBreakdown(y, m){
+  const target = ym(y, m);
+  const okoNames   = new Set(wallets.filter(w => w.group === 'okozukai').map(w => w.name));
+  const carryNames = new Set(wallets.filter(w => w.group === 'carry').map(w => w.name));
+
+  const r = {
+    income:       { items: {}, total: 0 },
+    fixed:        { items: {}, total: 0 },
+    free:         { items: {}, total: 0 },
+    recurringPay: { items: {}, total: 0 },
+    transferOut:  { items: {}, total: 0 },
+    carrySpend:   { items: {}, total: 0 },
+    miscTransfer: { items: {}, total: 0 },
+  };
+  const add = (bucket, key, amt) => {
+    bucket.items[key] = (bucket.items[key] || 0) + amt;
+    bucket.total += amt;
+  };
+  const keyOf = h => {
+    if(h.category) return h.category;
+    if(isTobacco(h.memo)) return 'タバコ代';
+    const fc = (fixedCosts.items||[]).find(it => h.memo && it.name && h.memo.includes(it.name));
+    if(fc) return fc.name;
+    return h.memo || '（内容なし）';
+  };
+
+  history.forEach(h => {
+    if(ym(h.year, h.month) !== target) return;
+    if(h.type === 'balance_adjust') return;            // 残高調整は全体ビュー対象外
+    if(h.type === 'income'){ add(r.income, h.memo || '収入', h.amount); return; }
+
+    if(h.type === 'transfer'){
+      // 移動入は二重計上になるので無視（移動出側だけ見る）
+      if(h.transferDir === 'in') return;
+      const key = (h.transferPeerName || h.toWallet || h.memo || '振替');
+      if(h.recurringId) add(r.transferOut,  key, h.amount);
+      else              add(r.miscTransfer, key, h.amount);
+      return;
+    }
+
+    // ここから「支出」
+    if(h.recurringId){ add(r.recurringPay, keyOf(h), h.amount); return; }   // 定例の支払い
+    if(carryNames.has(h.walletName)){ add(r.carrySpend, keyOf(h), h.amount); return; } // 振替口座での実支出
+
+    // おこづかい口座での非定例支出 → 固定費 or 自由費
+    const k = keyOf(h);
+    if(isFixedCategory(k) || isTobacco(h.memo)) add(r.fixed, k, h.amount);
+    else                                        add(r.free, k, h.amount);
+  });
+
+  r.netSpend = r.fixed.total + r.free.total + r.recurringPay.total + r.carrySpend.total;
+  r.balance  = r.income.total - r.netSpend; // 月の収支（移動は含めない）
+  return r;
+}
+
 // spent for a wallet name in current month
 function spentThisMonth(walletName){
   const cym = currentYM();
@@ -3190,50 +3256,91 @@ async function runMonthlyReport(){
   const btn = document.getElementById('report-btn');
   btn.disabled = true;
   const target = ym(reportYear, reportMonth);
-  // 支出内訳・自由費の集計対象＝純粋なおこづかい消費。
-  // 移動・収入・残高調整に加え、定例項目（家賃・司法書士返済・借金返済など recurringId 付き）も
-  // おこづかいの消費ではないので除外する（C方針と統一。混入すると自由費実績が水増しされる）。
-  const monthHistory = history.filter(h =>
-    ym(h.year,h.month)===target &&
-    h.type!=='transfer' && h.type!=='income' && h.type!=='balance_adjust' &&
-    !h.recurringId
-  );
   document.getElementById('report-output').style.display = 'block';
 
-  // メモ別集計
+  // 月次全体ビュー（5区分＋収入＋純支出）
+  const bd = buildMonthlyBreakdown(reportYear, reportMonth);
+  const hasAny = bd.income.total || bd.netSpend || bd.transferOut.total || bd.miscTransfer.total;
+
   const breakdown = document.getElementById('spend-breakdown');
   breakdown.innerHTML = '';
-  if(!monthHistory.length){
+  if(!hasAny){
     breakdown.innerHTML = '<div class="empty-msg" style="padding:20px 0">この月の記帳データがありません</div>';
     document.getElementById('ai-output').innerHTML = '';
     btn.disabled = false; return;
   }
 
-  // カテゴリをキーに集計（旧データはメモから推定）
-  const memoMap = {};
-  const normalizeKey = h => {
-    if(h.category) return h.category;
-    if(isTobacco(h.memo)) return 'たばこ';
-    // 固定費名がメモに含まれればそのカテゴリ扱い
-    const fc = (fixedCosts.items||[]).find(it => h.memo && it.name && h.memo.includes(it.name));
-    if(fc) return fc.name;
-    return h.memo || '（内容なし）';
+  // 固定費の予算（マスタ）をカテゴリ名で引く
+  const fixedBudgetOf = name => {
+    const it = (fixedCosts.items||[]).find(it => it.name === name);
+    return it ? it.amount : null;
   };
-  monthHistory.forEach(h => {
-    const key = normalizeKey(h);
-    memoMap[key] = (memoMap[key]||0) + h.amount;
-  });
-  const total = Object.values(memoMap).reduce((s,v)=>s+v,0);
-  const sorted = Object.entries(memoMap).sort((a,b)=>b[1]-a[1]);
-  sorted.forEach(([memo, amt]) => {
-    const pct = total>0 ? Math.round(amt/total*100) : 0;
-    const row = document.createElement('div');
-    row.className = 'spend-bar-row';
-    row.innerHTML = `
-      <div class="spend-bar-label"><span>${memo}</span><span>¥${fmt(amt)}（${pct}%）</span></div>
-      <div class="spend-bar-track"><div class="spend-bar-fill" style="width:${pct}%"></div></div>`;
-    breakdown.appendChild(row);
-  });
+  const freeTotalBudget = freeMonthlyBudget(); // 自由費の枠
+
+  // 区分ブロックを組み立てるヘルパー
+  //  rows: [{name, amount, budget(optional)}]
+  const sectionHTML = (title, subtitle, rows, subtotal, subtotalBudget, muted) => {
+    if(!rows.length && !subtotal) return '';
+    const rowsHTML = rows.map(row => {
+      const right = (row.budget != null)
+        ? `¥${fmt(row.amount)} <span style="color:var(--muted)">/ ¥${fmt(row.budget)}</span>`
+        : `¥${fmt(row.amount)}`;
+      return `<div class="report-row"><div class="report-row-name">${row.name}</div>
+        <div class="report-row-right"><span class="report-row-val">${right}</span></div></div>`;
+    }).join('');
+    const subRight = (subtotalBudget != null)
+      ? `¥${fmt(subtotal)} <span style="color:var(--muted)">/ ¥${fmt(subtotalBudget)}</span>`
+      : `¥${fmt(subtotal)}`;
+    return `<div class="report-section" style="${muted?'opacity:.85':''}">
+      <div class="report-sec-label" style="display:flex;justify-content:space-between;align-items:baseline">
+        <span>${title}</span>${subtitle?`<span style="font-weight:600;color:var(--muted);font-size:11px">${subtitle}</span>`:''}
+      </div>
+      ${rowsHTML}
+      <div class="report-row" style="border-top:1px solid var(--line);margin-top:4px;padding-top:6px">
+        <div class="report-row-name" style="font-weight:800">小計</div>
+        <div class="report-row-right"><span class="report-row-val" style="font-weight:800">${subRight}</span></div>
+      </div>
+    </div>`;
+  };
+  const toRows = (bucket, withBudget) => Object.entries(bucket.items)
+    .sort((a,b)=>b[1]-a[1])
+    .map(([name,amount]) => withBudget ? {name, amount, budget: fixedBudgetOf(name)} : {name, amount});
+
+  let html = '';
+  // 収入
+  if(bd.income.total){
+    html += sectionHTML('収入', '', toRows(bd.income,false), bd.income.total, null, false);
+  }
+  // おこづかい：固定費
+  html += sectionHTML('固定費（おこづかい）', '実額 / 予算', toRows(bd.fixed,true), bd.fixed.total, fixedTotal(), false);
+  // おこづかい：自由費
+  html += sectionHTML('自由費（おこづかい）', `枠 ¥${fmt(freeTotalBudget)}`, toRows(bd.free,false), bd.free.total, freeTotalBudget, false);
+  // 定例（親への支払い）
+  if(bd.recurringPay.total){
+    html += sectionHTML('定例の支払い（おこづかい対象外）', '', toRows(bd.recurringPay,false), bd.recurringPay.total, null, true);
+  }
+  // 積立・振替
+  if(bd.transferOut.total){
+    html += sectionHTML('積立・振替（各口座へ配分／対象外）', '口座間移動', toRows(bd.transferOut,false), bd.transferOut.total, null, true);
+  }
+  // 振替口座からの実支出
+  if(bd.carrySpend.total){
+    html += sectionHTML('振替口座からの実支出', '', toRows(bd.carrySpend,false), bd.carrySpend.total, null, false);
+  }
+  // その他の振替（臨時）
+  if(bd.miscTransfer.total){
+    html += sectionHTML('その他の振替（臨時／対象外）', '口座間移動', toRows(bd.miscTransfer,false), bd.miscTransfer.total, null, true);
+  }
+  // 純支出・収支のまとめ
+  html += `<div class="report-section" style="background:var(--bg2)">
+    <div class="report-row"><div class="report-row-name" style="font-weight:800">純支出（実際に出たお金）</div>
+      <div class="report-row-right"><span class="report-row-val" style="font-weight:800">¥${fmt(bd.netSpend)}</span></div></div>
+    <div style="font-size:11px;color:var(--muted);margin:2px 0 8px">固定費＋自由費＋定例の支払い＋振替口座の実支出。口座間の移動は含みません。</div>
+    ${bd.income.total ? `<div class="report-row"><div class="report-row-name" style="font-weight:900">月の収支</div>
+      <div class="report-row-right"><span class="report-row-val" style="font-weight:900;color:${bd.balance>=0?'var(--ok)':'var(--danger)'}">¥${fmt(bd.balance)}</span></div></div>` : ''}
+  </div>`;
+
+  breakdown.innerHTML = html;
 
   // AI評価
   const aiBox = document.getElementById('ai-output');
@@ -3246,9 +3353,11 @@ async function runMonthlyReport(){
     return;
   }
 
-  const spendList = sorted.map(([memo,amt])=>`・${memo}：¥${fmt(amt)}`).join('\n');
-  const tobaccoSpent = sorted.filter(([m])=>isTobacco(m)).reduce((s,[,v])=>s+v,0);
-  // 固定費の項目別（当月、実支出/上限）
+  // ── AIに渡す各区分の内訳テキスト（全体ビュー bd ベース）──
+  const linesOf = bucket => Object.entries(bucket.items).sort((a,b)=>b[1]-a[1])
+    .map(([k,v])=>`・${k}：¥${fmt(v)}`).join('\n') || '・（なし）';
+
+  // 固定費：項目別の実額/予算
   const fixedMonthItems = fixedSpentByItem(reportYear, reportMonth);
   const fixedBreakdown = fixedMonthItems.length
     ? fixedMonthItems.map(it => {
@@ -3286,10 +3395,10 @@ async function runMonthlyReport(){
     ? `\n\n【貯金口座の今月の動き（集計対象外）】${savingsSection}`
     : '';
 
-  // 自由費（新モデル）：枠＝おこづかい総額−おこづかい固定費合計
-  const freeTotal      = freeMonthlyBudget();
-  const freeSpent      = Math.max(0, total - tobaccoSpent - (fixedCosts.items ? fixedCosts.items.filter(it=>!isTobacco(it.name)).reduce((s,it)=>s+it.amount,0) : 0));
-  const fixedListStr3  = fixedCosts.items ? fixedCosts.items.map(it=>`${it.name}¥${fmt(it.amount)}`).join('・') : 'ガソリン・タバコ';
+  // 自由費（実額ベース：bd.free.total）と枠
+  const freeTotal = freeMonthlyBudget();
+  const freeSpent = bd.free.total;
+  const fixedListStr3 = fixedCosts.items ? fixedCosts.items.map(it=>it.name).join('・') : 'ガソリン・タバコ';
 
   // おこづかい繰越（式①②）：当月レポートでの目安。実際の移動は月次処理で確定。
   const okoBalForReport = okozukaiBalance();
@@ -3298,29 +3407,37 @@ async function runMonthlyReport(){
 
   const prompt = `あなたは親しみやすい家計アドバイザーです。成人した子供のおこづかい管理を親子で振り返っています。
 
-【${reportYear}年${reportMonth}月の支出内訳（メモ別）】
-${spendList}
-合計：¥${fmt(total)}　おこづかい総額：¥${fmt(OKOZUKAI_TOTAL)}
-【固定費の状況】
+おこづかいは毎月¥${fmt(OKOZUKAI_TOTAL)}。その内訳は「固定費（ガソリン/タバコ/定期/医療など、項目ごとに予算あり）」と「自由費（固定費を引いた残り全部）」の2本立てです。
+※ 下記の「定例の支払い」「積立・振替」「振替口座からの実支出」「その他の振替」は、おこづかい¥${fmt(OKOZUKAI_TOTAL)}とは別のお金（給料から配分・支払い）であり、おこづかいの評価には含めません。コメントの主役は固定費と自由費です。
+
+【${reportYear}年${reportMonth}月】
+■ 固定費（おこづかい）実額¥${fmt(bd.fixed.total)} / 予算¥${fmt(fixedTotal())}
 ${fixedBreakdown}
-自由費（おこづかい${fmt(OKOZUKAI_TOTAL)}から固定費${fixedListStr3}を除いた枠）：枠¥${fmt(freeTotal)}　実績¥${fmt(freeSpent)}${wishSection}${savingsNote}
+■ 自由費（おこづかい）実額¥${fmt(freeSpent)} / 枠¥${fmt(freeTotal)}
+${linesOf(bd.free)}
+■ 定例の支払い（親へ・対象外）合計¥${fmt(bd.recurringPay.total)}
+${linesOf(bd.recurringPay)}
+■ 振替口座からの実支出（対象外）合計¥${fmt(bd.carrySpend.total)}
+${linesOf(bd.carrySpend)}
+${wishSection}${savingsNote}
 
 【おこづかいの繰越（重要・コメントに必ず含める）】
 ・今のおこづかい4口座の残高合計：¥${fmt(okoBalForReport)}
-・→ 自由貯金へ回す額：¥${fmt(toFreeSavings)}
-・→ 翌月のおこづかい補充額：¥${fmt(refillNext)}（/ ¥${fmt(OKOZUKAI_TOTAL)}）
+・→ 自由貯金へ回す額（＝口座の残高合計）：¥${fmt(toFreeSavings)}
+・→ 翌月のおこづかい補充額：¥${fmt(refillNext)}（補充後に¥${fmt(OKOZUKAI_TOTAL)}に戻る）
 
 【アドバイスの観点】
-・遊興費・外食・趣味などは「自分で調整できる費用」です。固定費（${fixedListStr3}）を払ったうえで残った自由費をどう配分したかを評価してください。
-・自由費はおこづかいから固定費を引いた残り全部です。固定費を節約するほど自由費が増え、使い残した分は自由貯金へ回せます。使いすぎを責めるより、節約できた点を前向きに褒めてください。
-・「今月貯金から購入したもの」がある場合は「○○を購入できましたね！」と嬉しそうに言及してください（集計とは無関係です）。
-・「使途不明金」や「理由なし引き出し」がある場合は責めずに事実としてさらっと触れる程度にしてください。
+・評価の対象は「固定費」と「自由費」だけです。定例の支払い・振替・振替口座の実支出には深入りせず、必要なら軽く触れる程度にしてください。
+・固定費は項目ごとに予算があります。予算より少なければ思いきり褒め、超過は優しく指摘してください。
+・自由費はおこづかいから固定費を引いた残り全部です。使い残した分は「自由貯金へ回す額」として翌月に貯金へ移ります。使いすぎを責めるより、収まっていれば褒めてください。
+・「自由貯金へ回す額」は固定費の節約額ではなく、月末のおこづかい口座残高そのものです。混同しないでください。
+・「今月貯金から購入したもの」があれば嬉しそうに言及（集計とは無関係）。「使途不明金」「理由なし引き出し」があれば責めずに事実としてさらっと。
 
 以下の順でコメントしてください。
-1. 全体の評価（自由費の使い方・配分の観点で）
-2. 無駄遣いと思われる項目を具体的に指摘（あれば）
-3. 固定費の評価（各項目について、目標より少なければ思いっきり褒め、超過があれば優しく指摘）
-4. 今月の自由貯金へ回す額（¥${fmt(toFreeSavings)}）に必ず触れる。節約できた月はその分まるごと自由貯金が増えることを前向きに伝える
+1. 全体の評価（固定費＋自由費がおこづかい¥${fmt(OKOZUKAI_TOTAL)}に収まったか）
+2. 無駄遣いと思われる自由費項目を具体的に指摘（あれば）
+3. 固定費の評価（各項目について予算との差で褒める／優しく指摘）
+4. 今月の自由貯金へ回す額（¥${fmt(toFreeSavings)}）に必ず触れる。月末のおこづかい残高がまるごと自由貯金へ移ることを前向きに伝える
 5. 貯金購入・引き出しへの言及（ある場合のみ）
 6. 来月の自由費をもっと上手に使うためのアドバイス＋応援の一言
 
