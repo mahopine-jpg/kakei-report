@@ -719,8 +719,8 @@ body {
             <div id="ai-output"></div>
           </div>
         </div>
-        <button class="export-btn" id="rollover-btn" onclick="doRollover()" style="display:none;background:var(--text);color:#fff;border-color:var(--text);margin-bottom:8px">🏦 月次繰越する（貯金口座に積み立て）</button>
-        <button class="export-btn" onclick="exportCSV()">📥 Excelに出力（CSV）</button>
+        <button class="export-btn" id="close-month-btn" onclick="runMonthlyClose()" style="display:none;background:var(--text);color:#fff;border-color:var(--text);margin-bottom:8px">✅ この月を締める（月次処理）</button>
+        <button class="export-btn" onclick="exportCSV()">📥 明細をCSVで出力</button>
         <button class="export-btn" onclick="exportSummaryCSV()" style="margin-top:8px">📊 月次サマリCSVを出力（全月分）</button>
       </div>
       <div class="sec-label" style="padding-left:0;margin-top:16px">月次サマリ履歴</div>
@@ -3234,7 +3234,9 @@ async function runMonthlyReport(){
   const apiKey = LS.get(KEY_API);
   if(!apiKey){
     aiBox.innerHTML = `<div class="ai-box" style="color:var(--muted)">APIキーを設定するとAI評価が表示されます。</div>`;
-    btn.disabled=false; return;
+    btn.disabled=false;
+    showCloseMonthBtn();
+    return;
   }
 
   const spendList = sorted.map(([memo,amt])=>`・${memo}：¥${fmt(amt)}`).join('\n');
@@ -3331,64 +3333,106 @@ ${fixedBreakdown}
     aiBox.innerHTML = `<div class="ai-box" style="color:var(--danger)">エラー: ${e.message}</div>`;
   }
   btn.disabled = false;
+  showCloseMonthBtn();
+}
+
+// 締めボタンの表示制御：未締め（closed なし）かつ未来月でない月でのみ表示。
+function showCloseMonthBtn(){
   const d = now();
-  const isCurrentMonth = (reportYear===d.getFullYear() && reportMonth===d.getMonth()+1);
-  document.getElementById('rollover-btn').style.display = (isCurrentMonth) ? 'block' : 'none';
+  const isFuture = (reportYear > d.getFullYear()) || (reportYear === d.getFullYear() && reportMonth > d.getMonth()+1);
+  document.getElementById('close-month-btn').style.display =
+    (!isMonthClosed(reportYear, reportMonth) && !isFuture) ? 'block' : 'none';
 }
 
 // ════════════════════════════════
-//  月次繰越
+//  月次処理（締め）— 確定メモ準拠（フェーズD-1）
 // ════════════════════════════════
-async function doRollover(){
-  if(!confirm(`${reportYear}年${reportMonth}月の月次繰越を行います。\n\n・各口座の残金を貯金口座に積み立てます\n・記帳履歴はそのまま残ります\n・各口座の今月の使用額がリセットされます\n\nよろしいですか？`)) return;
+// 締め済み判定：その月のレコードに closed フラグが付いているか。
+// closed = 「CSV退避済み＝この月の明細はD-2で削除してよい」の判定根拠。
+function isMonthClosed(y, m){
+  const target = ym(y, m);
+  return history.some(h => ym(h.year, h.month) === target && h.closed);
+}
 
-  // 残金合計を計算
-  const totalRem = wallets.reduce((s,w) => s + (w.budget - spentInMonth(w.name,reportYear,reportMonth)), 0);
+// 月次処理（月末ワンアクションで締める）。半自動：金額は提示・記録するが、
+// 実際の口座移動（自由貯金へ振替／おこづかい補充）は本人が手で行う（確定メモ第7章）。
+// 手順：① 明細CSV出力 → ② おこづかいリセット（式①②をサマリに焼き付け＋当月おこづかい消化を rolledOver）
+//        → ③ 当月レコードに closed フラグ（締め済み）。明細削除はD-2。
+async function runMonthlyClose(){
+  // レポート未表示なら先に出させる（支出内訳・AI評価をサマリに焼き付けるため）
+  if(document.getElementById('report-output').style.display === 'none'){
+    showToast('先に「月次分析・AI評価を出す」を押してください');
+    return;
+  }
+  if(isMonthClosed(reportYear, reportMonth)){
+    showToast('この月はすでに締め済みです');
+    return;
+  }
 
-  // AI評価テキストを取得（既に表示済みのものを使う）
-  const aiBox = document.getElementById('ai-output');
+  // 式①② を確定時点の残高で算出（確定メモ第3章）
+  const okoBal  = okozukaiBalance();                          // おこづかい4口座の現在残高合計
+  const toFree  = okoBal;                                     // 式② 自由貯金へ回す額
+  const refill  = Math.max(0, OKOZUKAI_TOTAL - okoBal);       // 式① 翌月補充額
+
+  const ok = confirm(
+    `${reportYear}年${reportMonth}月を締めます（月次処理）。\n\n`+
+    `この処理で行うこと：\n`+
+    `・この月の明細CSVを書き出し（共有フォルダ保存用）\n`+
+    `・おこづかいの今月使用をリセット\n`+
+    `・「締め済み」の印を付ける\n\n`+
+    `▼ おこづかい繰越（半自動・実際の移動はご自身で）\n`+
+    `・おこづかい4口座の残高合計：¥${fmt(okoBal)}\n`+
+    `・→ 自由貯金へ回す額：¥${fmt(toFree)}\n`+
+    `・→ 翌月のおこづかい補充額：¥${fmt(refill)}\n\n`+
+    `記帳履歴はそのまま残ります。よろしいですか？`
+  );
+  if(!ok) return;
+
+  // ── ① 明細CSV出力（F-42）──
+  const detailCSV = buildDetailCSV(reportYear, reportMonth);
+  downloadCSV(detailCSV, `kakei_report_detail_${reportYear}${String(reportMonth).padStart(2,'0')}.csv`);
+
+  // ── 月次サマリを焼き付け（確定メモ第8章：口座ごとの月末残高＋式①②＋AIコメント）──
+  const aiBox  = document.getElementById('ai-output');
   const aiText = aiBox.querySelector('.ai-box')?.innerText || '';
-
-  // 月次サマリに追記
   const summaryEntry = {
     year: reportYear,
     month: reportMonth,
+    // 各口座の「締め時点の月末残高」を焼き付ける（β→α移行後も値が失われないように）
     wallets: wallets.map(w => ({
-      name: w.name,
-      budget: w.budget,
-      spent: spentInMonth(w.name, reportYear, reportMonth)
+      name:    w.name,
+      group:   w.group,
+      balance: walletBalance(w.name),                          // 月末残高（焼き付け）
+      spent:   spentInMonth(w.name, reportYear, reportMonth)   // 当月使用額（参考）
     })),
-    totalRem,
+    okozukai: {
+      total:  OKOZUKAI_TOTAL,
+      balance: okoBal,    // おこづかい4口座の月末残高合計
+      toFree,             // 式② 自由貯金へ回す額
+      refill              // 式① 翌月補充額
+    },
     aiComment: aiText,
     ts: Date.now()
   };
-  // 同月分があれば上書き
-  const existIdx = monthlySummaries.findIndex(s=>s.year===reportYear&&s.month===reportMonth);
-  if(existIdx>=0) monthlySummaries[existIdx]=summaryEntry;
+  const existIdx = monthlySummaries.findIndex(s => s.year===reportYear && s.month===reportMonth);
+  if(existIdx >= 0) monthlySummaries[existIdx] = summaryEntry;
   else monthlySummaries.push(summaryEntry);
-  monthlySummaries.sort((a,b)=>b.ts-a.ts);
+  monthlySummaries.sort((a,b) => b.ts - a.ts);
   LS.set(KEY_SUMMARY, monthlySummaries);
 
-  // 貯金口座に積み立て
-  const prevSavings = savings;
-  savings += totalRem;
-  LS.set(KEY_SAVINGS, savings);
-
-  // 今月の記帳をアーカイブ（履歴は残す）
-  // → 残高は「予算 - spentInMonth」で算出されるため、
-  //   繰越済みフラグを history に付ける形で処理
+  // ── ② おこづかいリセット＋③ 締め済みフラグ ──
+  // rolledOver：おこづかい消化計算（okozukaiSpentInMonth）からこの月のレコードを除外し、使用をリセット。
+  // closed：この月はCSV退避済み＝D-2で明細削除してよい月。
   const targetYM = ym(reportYear, reportMonth);
   history = history.map(h => {
-    if(ym(h.year,h.month)===targetYM) return {...h, rolledOver:true};
+    if(ym(h.year, h.month) === targetYM) return {...h, rolledOver:true, closed:true};
     return h;
   });
-  // 今月分として新たな空エントリを作るのではなく、
-  // spentThisMonth が rolledOver=true の履歴を除外するよう変更
   LS.set(KEY_HISTORY, history);
 
-  renderHome(); renderHistory(); renderSummaryList();
-  document.getElementById('rollover-btn').style.display='none';
-  showToast(`¥${fmt(totalRem)} を貯金口座に積み立てました（累計 ¥${fmt(savings)}）`);
+  renderHome(); renderHistory(); renderSummaryList(); renderRolloverCard();
+  document.getElementById('close-month-btn').style.display = 'none';
+  showToast(`${reportYear}年${reportMonth}月を締めました（自由貯金へ ¥${fmt(toFree)} を移してください）`);
 }
 
 // ════════════════════════════════
@@ -3440,34 +3484,44 @@ function buildDetailCSV(year, month){
 
 function exportCSV(){
   const csv = buildDetailCSV(reportYear, reportMonth);
-  downloadCSV(csv, `okozukai_detail_${reportYear}${String(reportMonth).padStart(2,'0')}.csv`);
+  downloadCSV(csv, `kakei_report_detail_${reportYear}${String(reportMonth).padStart(2,'0')}.csv`);
   showToast('明細CSVを出力しました');
+}
+
+// 月次サマリ1件から各口座の月末残高を取り出す（新旧フォーマット両対応）。
+// 新：w.balance（焼き付け月末残高）。旧 doRollover 由来：budget-spent で代替。
+function summaryWalletBalance(w){
+  if(w && w.balance != null) return w.balance;
+  if(w && w.budget != null && w.spent != null) return w.budget - w.spent;
+  return 0;
 }
 
 function exportSummaryCSV(){
   if(!monthlySummaries.length){ showToast('月次サマリがまだありません'); return; }
-  // ヘッダー：年月 + 各口座名 + 残金合計 + 貯金残高（累計） + AI評価
-  const walletNames = [...new Set(monthlySummaries.flatMap(s=>s.wallets.map(w=>w.name)))];
+  // ヘッダー：年月 + 各口座名（月末残高/使用額） + おこづかい残高合計 + 自由貯金へ回す額 + 翌月補充額 + AI評価
+  const walletNames = [...new Set(monthlySummaries.flatMap(s => (s.wallets||[]).map(w=>w.name)))];
   let csv = '\uFEFF年月';
-  walletNames.forEach(n => { csv += `,${n}_予算,${n}_使用額,${n}_残高`; });
-  csv += ',残金合計,貯金残高（累計）,AI評価\n';
+  walletNames.forEach(n => { csv += `,${n}_月末残高,${n}_使用額`; });
+  csv += ',おこづかい残高合計,自由貯金へ回す額,翌月補充額,AI評価\n';
 
   // 古い月順に並べる
   const sorted = [...monthlySummaries].sort((a,b)=> a.year!==b.year ? a.year-b.year : a.month-b.month);
-  let runSavings = 0;
   sorted.forEach(s => {
-    runSavings += s.totalRem;
     csv += `${s.year}/${String(s.month).padStart(2,'0')}`;
     walletNames.forEach(n => {
-      const w = s.wallets.find(w=>w.name===n);
-      if(w){ csv += `,${w.budget},${w.spent},${w.budget-w.spent}`; }
-      else  { csv += ',,,'; }
+      const w = (s.wallets||[]).find(w=>w.name===n);
+      if(w){ csv += `,${summaryWalletBalance(w)},${w.spent!=null?w.spent:''}`; }
+      else  { csv += ',,'; }
     });
+    const oko = s.okozukai || {};
+    const okoBal = oko.balance != null ? oko.balance : '';
+    const toFree = oko.toFree  != null ? oko.toFree  : (s.totalRem != null ? s.totalRem : '');
+    const refill = oko.refill  != null ? oko.refill  : '';
     const comment = (s.aiComment||'').replace(/,/g,'、').replace(/\n/g,' ');
-    csv += `,${s.totalRem},${runSavings},"${comment}"\n`;
+    csv += `,${okoBal},${toFree},${refill},"${comment}"\n`;
   });
 
-  downloadCSV(csv, 'okozukai_summary.csv');
+  downloadCSV(csv, 'kakei_report_summary.csv');
   showToast('月次サマリCSVを出力しました');
 }
 
@@ -3540,7 +3594,7 @@ function renderSummaryList(){
   if(!c) return;
   c.innerHTML = '';
   if(!monthlySummaries.length){
-    c.innerHTML = '<div style="padding:16px;font-size:14px;font-weight:700;color:var(--muted)">月次繰越を行うとここに履歴が表示されます</div>';
+    c.innerHTML = '<div style="padding:16px;font-size:14px;font-weight:700;color:var(--muted)">月次処理（締め）を行うとここに履歴が表示されます</div>';
     return;
   }
   const sorted = [...monthlySummaries].sort((a,b)=> b.year!==a.year ? b.year-a.year : b.month-a.month);
@@ -3548,25 +3602,39 @@ function renderSummaryList(){
     const card = document.createElement('div');
     card.className = 'report-card';
     card.style.marginBottom = '10px';
-    const rows = s.wallets.map(w => {
-      const pct = w.budget>0?Math.min(100,Math.round(w.spent/w.budget*100)):0;
-      const c2  = pct>=90?'danger':pct>=70?'warn':'ok';
+    // 口座ごとの月末残高（新フォーマット：balance／旧：budget-spent で代替）
+    const rows = (s.wallets||[]).map(w => {
+      const bal = summaryWalletBalance(w);
       return `<div class="report-row">
         <div class="report-row-name">${w.name}</div>
         <div class="report-row-right">
-          <span class="report-row-val">¥${fmt(w.spent)}</span>
-          <span class="report-row-sub"> / ¥${fmt(w.budget)}</span>
+          <span class="report-row-val">¥${fmt(bal)}</span>
+          ${w.spent!=null ? `<span class="report-row-sub"> 使用¥${fmt(w.spent)}</span>` : ''}
         </div>
       </div>`;
     }).join('');
+    // おこづかい繰越（新フォーマット）。旧フォーマットは totalRem を残金として表示。
+    const oko = s.okozukai;
+    const okoBlock = oko
+      ? `<div class="report-section">
+           <div class="report-sec-label">おこづかい繰越</div>
+           <div class="report-row"><div class="report-row-name">おこづかい残高合計</div><div class="report-row-right"><span class="report-row-val">¥${fmt(oko.balance)}</span></div></div>
+           <div class="report-row"><div class="report-row-name">→ 自由貯金へ回した額</div><div class="report-row-right"><span class="report-row-val" style="color:var(--ok)">¥${fmt(oko.toFree)}</span></div></div>
+           <div class="report-row"><div class="report-row-name">→ 翌月の補充額</div><div class="report-row-right"><span class="report-row-val">¥${fmt(oko.refill)}</span></div></div>
+         </div>`
+      : '';
+    const headerRight = oko
+      ? `<div style="font-size:14px;font-weight:700;color:var(--ok)">自由貯金へ ¥${fmt(oko.toFree)}</div>`
+      : (s.totalRem!=null ? `<div style="font-size:14px;font-weight:700;color:var(--ok)">残金 ¥${fmt(s.totalRem)}</div>` : '');
     card.innerHTML = `
       <div class="report-section" style="background:var(--bg2)">
         <div style="display:flex;justify-content:space-between;align-items:center">
-          <div style="font-size:16px;font-weight:900">${s.year}年${s.month}月</div>
-          <div style="font-size:14px;font-weight:700;color:var(--ok)">残金 ¥${fmt(s.totalRem)}</div>
+          <div style="font-size:16px;font-weight:900">${s.year}年${s.month}月 <span style="font-size:12px;color:var(--muted)">締め済み</span></div>
+          ${headerRight}
         </div>
       </div>
       <div class="report-section">${rows}</div>
+      ${okoBlock}
       ${s.aiComment ? `<div class="report-section"><div class="report-sec-label">AI評価</div><div class="ai-box" style="font-size:14px">${s.aiComment.replace(/\n/g,'<br>')}</div></div>` : ''}`;
     c.appendChild(card);
   });
