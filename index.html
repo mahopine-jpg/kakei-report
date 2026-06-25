@@ -3190,7 +3190,14 @@ async function runMonthlyReport(){
   const btn = document.getElementById('report-btn');
   btn.disabled = true;
   const target = ym(reportYear, reportMonth);
-  const monthHistory = history.filter(h => ym(h.year,h.month)===target && h.type!=='transfer' && h.type!=='income' && h.type!=='balance_adjust');
+  // 支出内訳・自由費の集計対象＝純粋なおこづかい消費。
+  // 移動・収入・残高調整に加え、定例項目（家賃・司法書士返済・借金返済など recurringId 付き）も
+  // おこづかいの消費ではないので除外する（C方針と統一。混入すると自由費実績が水増しされる）。
+  const monthHistory = history.filter(h =>
+    ym(h.year,h.month)===target &&
+    h.type!=='transfer' && h.type!=='income' && h.type!=='balance_adjust' &&
+    !h.recurringId
+  );
   document.getElementById('report-output').style.display = 'block';
 
   // メモ別集計
@@ -3782,9 +3789,10 @@ function markWalletsDirty(){
   document.getElementById('save-wallets-btn').disabled = false;
 }
 function markApiDirty(){
+  // oninput が発火した＝ユーザーが編集した。空にした場合は「削除」として保存できるよう
+  // ボタンを有効化する（マスク表示●●●のまま未編集なら oninput は発火しない）。
   apiDirty = true;
-  const val = document.getElementById('inp-api').value.trim();
-  document.getElementById('save-api-btn').disabled = !val;
+  document.getElementById('save-api-btn').disabled = false;
 }
 
 // ════════════════════════════════
