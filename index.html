@@ -728,11 +728,11 @@ body {
 <div class="page" id="page-settings">
   <div class="settings-wrap">
 
-    <div class="sec-label">口座と予算</div>
+    <div class="sec-label">口座</div>
     <div class="setting-card">
       <div class="setting-head">
         <div class="setting-head-title">口座一覧</div>
-        <div class="setting-head-sub" style="font-size:12px">口座名　　　　¥予算</div>
+        <div class="setting-head-sub" style="font-size:12px">口座名</div>
       </div>
       <div id="wallet-settings"></div>
     </div>
@@ -1210,6 +1210,21 @@ function walletBalance(walletName){
       return s - h.amount;
     }, 0);
 }
+// おこづかい4口座（group:'okozukai'）の保持残高合計（方式β）
+function okozukaiBalance(){
+  return wallets
+    .filter(w => w.group === 'okozukai')
+    .reduce((s,w) => s + walletBalance(w.name), 0);
+}
+// おこづかい4口座の今月支出合計（純粋な支出のみ）
+function okozukaiSpentThisMonth(){
+  return wallets
+    .filter(w => w.group === 'okozukai')
+    .reduce((s,w) => s + spentThisMonth(w.name), 0);
+}
+// 自由費の月額枠＝おこづかい総額(51,000)−おこづかい固定費合計
+function freeMonthlyBudget(){ return Math.max(0, OKOZUKAI_TOTAL - fixedTotal()); }
+
 // spent for a wallet name in current month
 function spentThisMonth(walletName){
   const cym = currentYM();
@@ -1759,9 +1774,8 @@ function syncWalletsFromDOM(){
   wallets = Array.from(rows).map((row, i) => {
     const prev = wallets[i] || {};
     return {
-      ...prev, // group・lastBalance など編集欄にないプロパティを保持
-      name:   row.querySelector('.inp-name').value.trim() || '口座',
-      budget: parseInt(row.querySelector('.inp-budget').value) || 0
+      ...prev, // group・lastBalance・budget など編集欄にないプロパティを保持
+      name:   row.querySelector('.inp-name').value.trim() || '口座'
     };
   });
 }
@@ -1823,8 +1837,6 @@ function renderSettings(){
     row.dataset.idx = i;
     row.innerHTML = `
       <input class="inp-name" type="text" value="${w.name}" placeholder="口座名" oninput="markWalletsDirty()">
-      <span class="budget-yen">¥</span>
-      <input class="inp-budget" type="number" value="${w.budget}" placeholder="0" inputmode="numeric" oninput="markWalletsDirty()">
       <button class="del-btn" onclick="delWalletRow(${i})">×</button>`;
     c.appendChild(row);
   });
@@ -2081,9 +2093,8 @@ function saveWallets(){
   const newWallets = Array.from(rows).map((row, i)=>{
     const prev = oldWallets[i] || {};
     return {
-      ...prev, // group・lastBalance など編集欄にないプロパティを保持
-      name:   row.querySelector('.inp-name').value.trim()||'口座',
-      budget: parseInt(row.querySelector('.inp-budget').value)||0
+      ...prev, // group・lastBalance・budget など編集欄にないプロパティを保持
+      name:   row.querySelector('.inp-name').value.trim()||'口座'
     };
   });
 
@@ -2538,26 +2549,20 @@ function renderWeeklyStats(){
   });
   const weekSpent = weekTx.reduce((s,h)=>s+h.amount, 0);
 
-  // 今月の支出合計
-  const monthSpent = history
-    .filter(h => ym(h.year,h.month)===cym && !h.rolledOver && h.type!=='transfer' && h.type!=='income' && h.type!=='balance_adjust')
-    .reduce((s,h)=>s+h.amount,0);
+  // 今月の残高（おこづかい4口座の保持残高合計）
+  const okoBal = okozukaiBalance();
 
-  // 残高
-  const totalBudget = wallets.reduce((s,w)=>s+w.budget,0);
-  const totalRem = totalBudget - wallets.reduce((s,w)=>s+spentThisMonth(w.name),0);
-
-  // 自由費の計算
-  // 自由費予算 = 月予算合計 - 固定費設定合計
-  // 自由費実支出 = 今月の支出のうち固定費カテゴリ以外
-  // 自由費残り = 自由費予算 - 自由費実支出
+  // 自由費の計算（新モデル）
+  // 自由費枠 = OKOZUKAI_TOTAL(51,000) − おこづかい固定費合計
+  // 自由費実支出 = おこづかい今月支出 − おこづかい固定費の今月実支出
+  // 自由費残り = 自由費枠 − 自由費実支出
   const d = now();
   const daysInMonth = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
   const remainDays  = daysInMonth - d.getDate();
-  const fixedItemsTotal = fixedTotal();
   const fixedActual  = fixedSpentThisMonth();
-  const freeBudget   = Math.max(0, totalBudget - fixedItemsTotal);
-  const freeSpent    = Math.max(0, monthSpent - fixedActual);
+  const okoSpent     = okozukaiSpentThisMonth();
+  const freeBudget   = freeMonthlyBudget();
+  const freeSpent    = Math.max(0, okoSpent - fixedActual);
   const freeRem      = freeBudget - freeSpent;
 
   // 固定費の項目別（実支出 / 上限）
@@ -2571,7 +2576,7 @@ function renderWeeklyStats(){
   const c = document.getElementById('weekly-stats');
   c.innerHTML = `
     <div class="report-row"><div class="report-row-name">今週の支出</div><div class="report-row-right"><span class="report-row-val">¥${fmt(weekSpent)}</span></div></div>
-    <div class="report-row"><div class="report-row-name">今月の残高</div><div class="report-row-right"><span class="report-row-val">¥${fmt(totalRem)}</span><span class="report-row-sub">残${remainDays}日</span></div></div>
+    <div class="report-row"><div class="report-row-name">おこづかい残高</div><div class="report-row-right"><span class="report-row-val">¥${fmt(okoBal)}</span><span class="report-row-sub">残${remainDays}日</span></div></div>
     ${fixedRows}
     <div class="report-row" style="border-bottom:none"><div class="report-row-name">自由費残り</div><div class="report-row-right"><span class="report-row-val"${freeRem<0?' style="color:var(--danger)"':''}>¥${fmt(freeRem)}</span><span class="report-row-sub">/ ¥${fmt(freeBudget)}</span></div></div>`;
 }
@@ -2602,12 +2607,12 @@ async function runWeeklyCheck(){
     return dt >= mon && dt <= sun;
   });
   const weekSpent    = weekTx.reduce((s,h)=>s+h.amount,0);
-  const totalBudget  = wallets.reduce((s,w)=>s+w.budget,0);
-  const totalSpentSoFar = wallets.reduce((s,w)=>s+spentThisMonth(w.name),0);
-  const totalRem     = totalBudget - totalSpentSoFar;
-  const budgetPct    = totalBudget > 0 ? Math.round(totalSpentSoFar / totalBudget * 100) : 0;
-  const paceJudge    = budgetPct <= monthPct - 10 ? '余裕あり'
-                     : budgetPct <= monthPct + 5  ? 'ほぼ想定通り'
+  const okoBal       = okozukaiBalance();
+  const okoSpentSoFar = okozukaiSpentThisMonth();
+  // ペース判定はおこづかい総額(51,000)に対する消化率で見る
+  const okoPct       = OKOZUKAI_TOTAL > 0 ? Math.round(okoSpentSoFar / OKOZUKAI_TOTAL * 100) : 0;
+  const paceJudge    = okoPct <= monthPct - 10 ? '余裕あり'
+                     : okoPct <= monthPct + 5  ? 'ほぼ想定通り'
                      : '使いすぎに注意';
   const memoList = weekTx.map(h=>`・${h.memo||'（メモなし）'}：¥${fmt(h.amount)}`).join('\n') || '・記帳なし';
   // 固定費の項目別ステータス（実支出/上限、超過は明示）
@@ -2625,10 +2630,9 @@ async function runWeeklyCheck(){
     ? '\n\n【検討中の欲しいもの】\n' + wishItems.map(w=>`・${w.name}：¥${fmt(w.price)}（${w.plan||'計画未記録'}）`).join('\n')
     : '';
 
-  const fixedItemsTotal = fixedTotal();
   const fixedActualSoFar = fixedSpentThisMonth();
-  const freeTotal      = Math.max(0, totalBudget - fixedItemsTotal);
-  const freeSpentSoFar = Math.max(0, totalSpentSoFar - fixedActualSoFar);
+  const freeTotal      = freeMonthlyBudget();
+  const freeSpentSoFar = Math.max(0, okoSpentSoFar - fixedActualSoFar);
   const fixedListStr   = fixedCosts.items.map(it=>`${it.name}¥${fmt(it.amount)}`).join('・');
 
   // 今週の目立った支出（上位3件）
@@ -2643,14 +2647,16 @@ ${memoList}
 今週の目立った支出（上位3件）：${topSpend}
 
 【今月のペース（${elapsedDays}日経過/${daysInMonth2}日、月の${monthPct}%）】
-予算消化率：${budgetPct}%（¥${fmt(totalSpentSoFar)}/¥${fmt(totalBudget)}）→ ${paceJudge}
-残高：¥${fmt(totalRem)}（残り${remainDays}日）
+おこづかい消化率：${okoPct}%（¥${fmt(okoSpentSoFar)}/¥${fmt(OKOZUKAI_TOTAL)}）→ ${paceJudge}
+おこづかい残高：¥${fmt(okoBal)}（残り${remainDays}日）
 ${fixedStatus}
-自由費（固定費${fixedListStr}を除いた予算）：¥${fmt(freeTotal)}、使用済み¥${fmt(freeSpentSoFar)}、残り¥${fmt(Math.max(0,freeTotal-freeSpentSoFar))}${wishText}
+自由費（おこづかい${fmt(OKOZUKAI_TOTAL)}から固定費${fixedListStr}を除いた枠）：¥${fmt(freeTotal)}、使用済み¥${fmt(freeSpentSoFar)}、残り¥${fmt(Math.max(0,freeTotal-freeSpentSoFar))}${wishText}
+
+自由費はおこづかいから固定費（ガソリン・タバコ等）を引いた残り全部です。固定費を節約するほど自由費が増えます。使いすぎを責めるより、節約できている点を前向きに評価してください。
 
 以下の順でコメントしてください。
 1. 今週の注目支出に触れながら全体の振り返り（事実ベースで端的に）
-2. 今月のペース評価（月経過${monthPct}%に対して予算消化${budgetPct}%という数字を使って具体的に）
+2. 今月のペース評価（月経過${monthPct}%に対しておこづかい消化${okoPct}%という数字を使って具体的に）
 3. 固定費の評価（各項目について、目標内なら褒める、超えていたら優しく指摘。特に超過している項目があれば優先的に触れる）
 4. 来週・今月残りへの一言アドバイス
 
@@ -2678,9 +2684,8 @@ function shareWeeklyMail(){
   const fmt2 = d => `${d.getMonth()+1}/${d.getDate()}`;
   const d = now();
   const cym = currentYM();
-  const totalBudget = wallets.reduce((s,w)=>s+w.budget,0);
-  const totalSpentSoFar = wallets.reduce((s,w)=>s+spentThisMonth(w.name),0);
-  const totalRem    = totalBudget - totalSpentSoFar;
+  const okoBal = okozukaiBalance();
+  const okoSpentSoFar = okozukaiSpentThisMonth();
   const weekTx = history.filter(h => {
     if(h.rolledOver||h.type==='transfer'||h.type==='income'||h.type==='balance_adjust') return false;
     const dt = new Date(h.year, h.month-1, h.day);
@@ -2703,9 +2708,9 @@ function shareWeeklyMail(){
   const daysInMonth3 = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
   const elapsedDays3 = d.getDate();
   const monthPct3    = Math.round(elapsedDays3 / daysInMonth3 * 100);
-  const budgetPct3   = totalBudget > 0 ? Math.round(totalSpentSoFar / totalBudget * 100) : 0;
-  const paceJudge3   = budgetPct3 <= monthPct3 - 10 ? '余裕あり'
-                     : budgetPct3 <= monthPct3 + 5  ? 'ほぼ想定通り'
+  const okoPct3      = OKOZUKAI_TOTAL > 0 ? Math.round(okoSpentSoFar / OKOZUKAI_TOTAL * 100) : 0;
+  const paceJudge3   = okoPct3 <= monthPct3 - 10 ? '余裕あり'
+                     : okoPct3 <= monthPct3 + 5  ? 'ほぼ想定通り'
                      : '使いすぎに注意';
   const remainDays3  = daysInMonth3 - elapsedDays3;
 
@@ -2735,9 +2740,9 @@ ${detailLines}
   今週合計  ¥${fmt(weekSpent)}
 
 ■ 今月のペース（${elapsedDays3}日経過/${daysInMonth3}日中）
-  予算消化：¥${fmt(totalSpentSoFar)} / ¥${fmt(totalBudget)}（${budgetPct3}%）
+  おこづかい消化：¥${fmt(okoSpentSoFar)} / ¥${fmt(OKOZUKAI_TOTAL)}（${okoPct3}%）
   月の経過：${monthPct3}%　→　${paceJudge3}
-  残高：¥${fmt(totalRem)}（残り${remainDays3}日）
+  おこづかい残高：¥${fmt(okoBal)}（残り${remainDays3}日）
 
 ■ 固定費（今月）
 ${fixedSection}
@@ -2781,14 +2786,15 @@ async function runConsult(){
   aiBox.innerHTML = '<div class="ai-loading"><div class="spinner"></div>AIが相談中...</div>';
 
   const cym = currentYM();
-  const totalBudget = wallets.reduce((s,w)=>s+w.budget,0);
-  const totalRem    = totalBudget - wallets.reduce((s,w)=>s+spentThisMonth(w.name),0);
+  const okoBal      = okozukaiBalance();
+  const okoSpent    = okozukaiSpentThisMonth();
   const d = now();
   const daysInMonth = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
   const remainDays  = daysInMonth - d.getDate();
-  const fixedRem    = fixedTotal();
-  const freeRem     = Math.max(0, totalRem - fixedRem);
-  const monthlyFree = Math.max(0, totalBudget - fixedTotal());
+  const fixedActual = fixedSpentThisMonth();
+  const monthlyFree = freeMonthlyBudget();                       // 自由費の月額枠
+  const freeRem     = Math.max(0, monthlyFree - Math.max(0, okoSpent - fixedActual)); // 今月の自由費残り
+  const freeSavBal  = walletBalance(WISH_WALLET);                // 自由貯金口座の残高
 
   const prompt = `あなたは親しみやすい家計アドバイザーです。
 
@@ -2797,16 +2803,20 @@ async function runConsult(){
 価格：¥${fmt(price)}
 
 【現在の財務状況】
-今月の残高：¥${fmt(totalRem)}（残り${remainDays}日）
-固定費を除いた今月の自由費残り：¥${fmt(freeRem)}
-毎月の自由費（固定費除き）：¥${fmt(monthlyFree)}
-貯金口座の残高：¥${fmt(savings)}
+おこづかい残高：¥${fmt(okoBal)}（残り${remainDays}日）
+今月の自由費残り：¥${fmt(freeRem)}
+毎月の自由費の枠（おこづかい${fmt(OKOZUKAI_TOTAL)}−固定費）：¥${fmt(monthlyFree)}
+自由貯金口座の残高：¥${fmt(freeSavBal)}
+
+【前提】
+・ほしいものは「自由貯金口座」から購入します（日常のおこづかい・自由費とは別の財布です）。
+・自由貯金は、毎月おこづかいを使い残した分が積み立てられる、突発的な買い物用の余裕資金です。
 
 以下の順でアドバイスしてください。
-1. 今月すぐ買えるか（残高・固定費をふまえて判断）
-2. 買えない場合：何をいくら節約すれば何ヶ月で買えるか（具体的な数字で）
-3. 貯金から出す場合の影響（貯金残高をふまえて）
-4. 背中を押す一言またはちょっと待ってのアドバイス
+1. 自由貯金口座の残高で今すぐ買えるか（残高をふまえて判断）
+2. 買えない場合：毎月いくらおこづかいを節約すれば何ヶ月で貯まるか（具体的な数字で）
+3. 自由貯金から出した場合の残高への影響
+4. 背中を押す一言、またはちょっと待ってのアドバイス
 
 文体はやわらかく親しみやすく。400文字以内。`;
 
@@ -3230,23 +3240,33 @@ async function runMonthlyReport(){
     ? `\n\n【貯金口座の今月の動き（集計対象外）】${savingsSection}`
     : '';
 
-  const monthlyBudget  = wallets.reduce((s,w)=>s+w.budget,0);
-  const freeTotal      = Math.max(0, monthlyBudget - fixedTotal());
+  // 自由費（新モデル）：枠＝おこづかい総額−おこづかい固定費合計
+  const freeTotal      = freeMonthlyBudget();
   const freeSpent      = Math.max(0, total - tobaccoSpent - (fixedCosts.items ? fixedCosts.items.filter(it=>!isTobacco(it.name)).reduce((s,it)=>s+it.amount,0) : 0));
   const fixedListStr3  = fixedCosts.items ? fixedCosts.items.map(it=>`${it.name}¥${fmt(it.amount)}`).join('・') : 'ガソリン・タバコ';
+
+  // おこづかい繰越（式①②）：当月レポートでの目安。実際の移動は月次処理で確定。
+  const okoBalForReport = okozukaiBalance();
+  const toFreeSavings   = okoBalForReport;                              // 式② 自由貯金へ回す額
+  const refillNext      = Math.max(0, OKOZUKAI_TOTAL - okoBalForReport); // 式① 翌月補充額
 
   const prompt = `あなたは親しみやすい家計アドバイザーです。成人した子供のおこづかい管理を親子で振り返っています。
 
 【${reportYear}年${reportMonth}月の支出内訳（メモ別）】
 ${spendList}
-合計：¥${fmt(total)}　予算：¥${fmt(monthlyBudget)}
+合計：¥${fmt(total)}　おこづかい総額：¥${fmt(OKOZUKAI_TOTAL)}
 【固定費の状況】
 ${fixedBreakdown}
-自由費（固定費${fixedListStr3}を除く）：予算¥${fmt(freeTotal)}　実績¥${fmt(freeSpent)}${wishSection}${savingsNote}
+自由費（おこづかい${fmt(OKOZUKAI_TOTAL)}から固定費${fixedListStr3}を除いた枠）：枠¥${fmt(freeTotal)}　実績¥${fmt(freeSpent)}${wishSection}${savingsNote}
+
+【おこづかいの繰越（重要・コメントに必ず含める）】
+・今のおこづかい4口座の残高合計：¥${fmt(okoBalForReport)}
+・→ 自由貯金へ回す額：¥${fmt(toFreeSavings)}
+・→ 翌月のおこづかい補充額：¥${fmt(refillNext)}（/ ¥${fmt(OKOZUKAI_TOTAL)}）
 
 【アドバイスの観点】
 ・遊興費・外食・趣味などは「自分で調整できる費用」です。固定費（${fixedListStr3}）を払ったうえで残った自由費をどう配分したかを評価してください。
-・「月の前半に使いすぎず後半まで持たせる」「使いたいものに優先順位をつける」といった自己管理の練習として捉えてコメントしてください。
+・自由費はおこづかいから固定費を引いた残り全部です。固定費を節約するほど自由費が増え、使い残した分は自由貯金へ回せます。使いすぎを責めるより、節約できた点を前向きに褒めてください。
 ・「今月貯金から購入したもの」がある場合は「○○を購入できましたね！」と嬉しそうに言及してください（集計とは無関係です）。
 ・「使途不明金」や「理由なし引き出し」がある場合は責めずに事実としてさらっと触れる程度にしてください。
 
@@ -3254,8 +3274,9 @@ ${fixedBreakdown}
 1. 全体の評価（自由費の使い方・配分の観点で）
 2. 無駄遣いと思われる項目を具体的に指摘（あれば）
 3. 固定費の評価（各項目について、目標より少なければ思いっきり褒め、超過があれば優しく指摘）
-4. 貯金購入・引き出しへの言及（ある場合のみ）
-5. 来月の自由費をもっと上手に使うためのアドバイス＋応援の一言
+4. 今月の自由貯金へ回す額（¥${fmt(toFreeSavings)}）に必ず触れる。節約できた月はその分まるごと自由貯金が増えることを前向きに伝える
+5. 貯金購入・引き出しへの言及（ある場合のみ）
+6. 来月の自由費をもっと上手に使うためのアドバイス＋応援の一言
 
 文体はやわらかく親しみやすく。500文字以内。`;
 
