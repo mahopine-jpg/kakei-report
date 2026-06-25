@@ -3469,8 +3469,15 @@ ${wishSection}${savingsNote}
 function showCloseMonthBtn(){
   const d = now();
   const isFuture = (reportYear > d.getFullYear()) || (reportYear === d.getFullYear() && reportMonth > d.getMonth()+1);
-  document.getElementById('close-month-btn').style.display =
-    (!isMonthClosed(reportYear, reportMonth) && !isFuture) ? 'block' : 'none';
+  const btn = document.getElementById('close-month-btn');
+  if(isFuture){ btn.style.display = 'none'; return; }
+  // 締め済みなら「締め直す」、未締めなら「締める」。どちらも表示する。
+  if(isMonthClosed(reportYear, reportMonth)){
+    btn.textContent = '🔄 この月を締め直す（最新データで再計算）';
+  } else {
+    btn.textContent = '✅ この月を締める（月次処理）';
+  }
+  btn.style.display = 'block';
 }
 
 // ════════════════════════════════
@@ -3493,10 +3500,7 @@ async function runMonthlyClose(){
     showToast('先に「月次分析・AI評価を出す」を押してください');
     return;
   }
-  if(isMonthClosed(reportYear, reportMonth)){
-    showToast('この月はすでに締め済みです');
-    return;
-  }
+  const reclosing = isMonthClosed(reportYear, reportMonth); // 締め直しか新規締めか
 
   // 式①② を確定時点の残高で算出（確定メモ第3章）
   const okoBal  = okozukaiBalance();                          // おこづかい4口座の現在残高合計
@@ -3504,11 +3508,17 @@ async function runMonthlyClose(){
   const refill  = Math.max(0, OKOZUKAI_TOTAL - okoBal);       // 式① 翌月補充額
 
   const ok = confirm(
-    `${reportYear}年${reportMonth}月を締めます（月次処理）。\n\n`+
-    `この処理で行うこと：\n`+
-    `・この月の明細CSVを書き出し（共有フォルダ保存用）\n`+
-    `・おこづかいの今月使用をリセット\n`+
-    `・「締め済み」の印を付ける\n\n`+
+    (reclosing
+      ? `${reportYear}年${reportMonth}月を「締め直し」ます（最新データで再計算）。\n\n`+
+        `すでに締め済みのこの月を、いまのデータで上書きします：\n`+
+        `・明細CSVを書き出し直し\n`+
+        `・月次サマリ（残高・AI評価）を最新に更新\n`+
+        `・締め日時を更新（最初に締めた日時は残します）\n\n`
+      : `${reportYear}年${reportMonth}月を締めます（月次処理）。\n\n`+
+        `この処理で行うこと：\n`+
+        `・この月の明細CSVを書き出し（共有フォルダ保存用）\n`+
+        `・おこづかいの今月使用をリセット\n`+
+        `・「締め済み」の印を付ける\n\n`)+
     `▼ おこづかい繰越（半自動・実際の移動はご自身で）\n`+
     `・おこづかい4口座の残高合計：¥${fmt(okoBal)}\n`+
     `・→ 自由貯金へ回す額：¥${fmt(toFree)}\n`+
@@ -3524,6 +3534,12 @@ async function runMonthlyClose(){
   // ── 月次サマリを焼き付け（確定メモ第8章：口座ごとの月末残高＋式①②＋AIコメント）──
   const aiBox  = document.getElementById('ai-output');
   const aiText = aiBox.querySelector('.ai-box')?.innerText || '';
+  const nowTs  = Date.now();
+  const existIdx0 = monthlySummaries.findIndex(s => s.year===reportYear && s.month===reportMonth);
+  // 最初に締めた日時は引き継ぐ（締め直しでも「初回いつ締めたか」を残す）
+  const firstClosedAt = (existIdx0 >= 0 && monthlySummaries[existIdx0].firstClosedAt)
+    ? monthlySummaries[existIdx0].firstClosedAt
+    : nowTs;
   const summaryEntry = {
     year: reportYear,
     month: reportMonth,
@@ -3541,10 +3557,11 @@ async function runMonthlyClose(){
       refill              // 式① 翌月補充額
     },
     aiComment: aiText,
-    ts: Date.now()
+    firstClosedAt,        // 最初に締めた日時
+    closedAt: nowTs,      // 今回（最終）締めた日時
+    ts: nowTs
   };
-  const existIdx = monthlySummaries.findIndex(s => s.year===reportYear && s.month===reportMonth);
-  if(existIdx >= 0) monthlySummaries[existIdx] = summaryEntry;
+  if(existIdx0 >= 0) monthlySummaries[existIdx0] = summaryEntry;
   else monthlySummaries.push(summaryEntry);
   monthlySummaries.sort((a,b) => b.ts - a.ts);
   LS.set(KEY_SUMMARY, monthlySummaries);
@@ -3552,6 +3569,7 @@ async function runMonthlyClose(){
   // ── ② おこづかいリセット＋③ 締め済みフラグ ──
   // rolledOver：おこづかい消化計算（okozukaiSpentInMonth）からこの月のレコードを除外し、使用をリセット。
   // closed：この月はCSV退避済み＝D-2で明細削除してよい月。
+  // どちらも真偽値なので、締め直しで再度 true にしても二重適用にはならない（冪等）。
   const targetYM = ym(reportYear, reportMonth);
   history = history.map(h => {
     if(ym(h.year, h.month) === targetYM) return {...h, rolledOver:true, closed:true};
@@ -3560,8 +3578,8 @@ async function runMonthlyClose(){
   LS.set(KEY_HISTORY, history);
 
   renderHome(); renderHistory(); renderSummaryList(); renderRolloverCard();
-  document.getElementById('close-month-btn').style.display = 'none';
-  showToast(`${reportYear}年${reportMonth}月を締めました（自由貯金へ ¥${fmt(toFree)} を移してください）`);
+  showCloseMonthBtn(); // 締め直し後もボタンは「締め直す」として残す
+  showToast(`${reportYear}年${reportMonth}月を${reclosing?'締め直しました':'締めました'}（自由貯金へ ¥${fmt(toFree)} を移してください）`);
 }
 
 // ════════════════════════════════
@@ -3755,12 +3773,25 @@ function renderSummaryList(){
     const headerRight = oko
       ? `<div style="font-size:14px;font-weight:700;color:var(--ok)">自由貯金へ ¥${fmt(oko.toFree)}</div>`
       : (s.totalRem!=null ? `<div style="font-size:14px;font-weight:700;color:var(--ok)">残金 ¥${fmt(s.totalRem)}</div>` : '');
+    // 締め日時の表示（最終締め日時。初回と異なれば「初回」も併記）
+    const fmtTs = ts => {
+      if(!ts) return '';
+      const d = new Date(ts);
+      return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    };
+    const closedTs = s.closedAt || s.ts;
+    let closedLine = '';
+    if(closedTs){
+      const reclosed = s.firstClosedAt && s.firstClosedAt !== closedTs;
+      closedLine = `<div style="font-size:11px;color:var(--muted);margin-top:2px">締め日時：${fmtTs(closedTs)}${reclosed?`（初回 ${fmtTs(s.firstClosedAt)}）`:''}</div>`;
+    }
     card.innerHTML = `
       <div class="report-section" style="background:var(--bg2)">
         <div style="display:flex;justify-content:space-between;align-items:center">
           <div style="font-size:16px;font-weight:900">${s.year}年${s.month}月 <span style="font-size:12px;color:var(--muted)">締め済み</span></div>
           ${headerRight}
         </div>
+        ${closedLine}
       </div>
       <div class="report-section">${rows}</div>
       ${okoBlock}
