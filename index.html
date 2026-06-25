@@ -642,8 +642,14 @@ body {
       </div>
       <div class="report-card" style="margin-bottom:8px">
         <div class="report-section">
-          <div class="report-sec-label">この週の状況</div>
+          <div class="report-sec-label">今週の支出</div>
           <div id="weekly-stats"></div>
+        </div>
+      </div>
+      <div class="report-card" style="margin-bottom:8px">
+        <div class="report-section">
+          <div class="report-sec-label" id="monthly-stats-label">今月の状況</div>
+          <div id="monthly-stats"></div>
         </div>
       </div>
       <button class="report-btn" onclick="runWeeklyCheck()">AIに週次チェックしてもらう</button>
@@ -2556,8 +2562,7 @@ function changeWeek(delta){
 }
 function renderWeeklyStats(){
   const {mon, sun} = getWeekRange();
-  const cym = currentYM();
-  // 今週の支出（移動のoutは除外、支出のみ）
+  // 今週の支出（移動のout・収入・残高調整は除外、純粋な支出のみ）
   const weekTx = history.filter(h => {
     if(h.rolledOver) return false;
     if(h.type==='transfer'||h.type==='income'||h.type==='balance_adjust') return false;
@@ -2565,34 +2570,49 @@ function renderWeeklyStats(){
     return d >= mon && d <= sun;
   });
   const weekSpent = weekTx.reduce((s,h)=>s+h.amount, 0);
+  const weekCount = weekTx.length;
 
-  // 今月の残高（おこづかい4口座の保持残高合計）
+  // この週の上位支出（最大3件）
+  const topRows = [...weekTx].sort((a,b)=>b.amount-a.amount).slice(0,3)
+    .map(h => `<div class="report-row"><div class="report-row-name">${String(h.month).padStart(2,'0')}/${String(h.day).padStart(2,'0')}　${h.memo||h.category||'（メモなし）'}</div><div class="report-row-right"><span class="report-row-val">¥${fmt(h.amount)}</span></div></div>`)
+    .join('');
+
+  const c = document.getElementById('weekly-stats');
+  c.innerHTML = `
+    <div class="report-row"><div class="report-row-name">この週の支出合計</div><div class="report-row-right"><span class="report-row-val">¥${fmt(weekSpent)}</span><span class="report-row-sub">${weekCount}件</span></div></div>
+    ${topRows || '<div class="report-row" style="border-bottom:none"><div class="report-row-name" style="color:var(--muted)">この週の記帳はありません</div></div>'}`;
+
+  renderMonthlyStats();
+}
+
+// 今月の状況（おこづかい残高・固定費・自由費）。週セレクタの影響を受けず常に現時点。
+function renderMonthlyStats(){
   const okoBal = okozukaiBalance();
 
-  // 自由費の計算（新モデル）
-  // 自由費枠 = OKOZUKAI_TOTAL(51,000) − おこづかい固定費合計
-  // 自由費実支出 = おこづかい今月支出 − おこづかい固定費の今月実支出
-  // 自由費残り = 自由費枠 − 自由費実支出
+  // ラベルに当日の日付を反映（◯月◯日時点）
+  const today = now();
+  const labelEl = document.getElementById('monthly-stats-label');
+  if(labelEl) labelEl.textContent = `今月の状況（${today.getMonth()+1}月${today.getDate()}日時点）`;
+
+  // 自由費（新モデル）：枠 = 51,000 − おこづかい固定費合計、実支出 = おこづかい今月消費 − おこづかい固定費実支出
   const d = now();
   const daysInMonth = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
   const remainDays  = daysInMonth - d.getDate();
-  const fixedActual  = fixedSpentThisMonth();
-  const okoSpent     = okozukaiSpentThisMonth();
-  const freeBudget   = freeMonthlyBudget();
-  const freeSpent    = Math.max(0, okoSpent - fixedActual);
-  const freeRem      = freeBudget - freeSpent;
+  const fixedActual = fixedSpentThisMonth();
+  const okoSpent    = okozukaiSpentThisMonth();
+  const freeBudget  = freeMonthlyBudget();
+  const freeSpent   = Math.max(0, okoSpent - fixedActual);
+  const freeRem     = freeBudget - freeSpent;
 
   // 固定費の項目別（実支出 / 上限）
   const fixedItems = fixedSpentByItem();
   const fixedRows = fixedItems.map(it => {
-    const pct = it.amount > 0 ? Math.round(it.spent / it.amount * 100) : 0;
     const over = it.amount > 0 && it.spent > it.amount;
-    return `<div class="report-row"><div class="report-row-name">${it.name}（今月）</div><div class="report-row-right"><span class="report-row-val"${over?' style="color:var(--danger)"':''}>¥${fmt(it.spent)}</span><span class="report-row-sub">/ ¥${fmt(it.amount)}</span></div></div>`;
+    return `<div class="report-row"><div class="report-row-name">${it.name}</div><div class="report-row-right"><span class="report-row-val"${over?' style="color:var(--danger)"':''}>¥${fmt(it.spent)}</span><span class="report-row-sub">/ ¥${fmt(it.amount)}</span></div></div>`;
   }).join('');
 
-  const c = document.getElementById('weekly-stats');
-  c.innerHTML = `
-    <div class="report-row"><div class="report-row-name">今週の支出</div><div class="report-row-right"><span class="report-row-val">¥${fmt(weekSpent)}</span></div></div>
+  const m = document.getElementById('monthly-stats');
+  m.innerHTML = `
     <div class="report-row"><div class="report-row-name">おこづかい残高</div><div class="report-row-right"><span class="report-row-val">¥${fmt(okoBal)}</span><span class="report-row-sub">残${remainDays}日</span></div></div>
     ${fixedRows}
     <div class="report-row" style="border-bottom:none"><div class="report-row-name">自由費残り</div><div class="report-row-right"><span class="report-row-val"${freeRem<0?' style="color:var(--danger)"':''}>¥${fmt(freeRem)}</span><span class="report-row-sub">/ ¥${fmt(freeBudget)}</span></div></div>`;
