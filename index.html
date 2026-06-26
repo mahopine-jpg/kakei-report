@@ -517,10 +517,13 @@ body {
 .toast {
   position: fixed; bottom: 140px; left: 50%;
   transform: translateX(-50%) translateY(10px);
-  background: var(--text); color: #fff; padding: 12px 24px;
+  background: var(--text); color: #fff; padding: 12px 20px;
   border-radius: 12px; font-size: 15px; font-weight: 700;
   opacity: 0; transition: opacity .2s, transform .2s;
-  pointer-events: none; white-space: nowrap; z-index: 999;
+  pointer-events: none; z-index: 999;
+  width: max-content; max-width: calc(100% - 32px); box-sizing: border-box;
+  white-space: normal; word-break: break-word; overflow-wrap: anywhere;
+  text-align: center; line-height: 1.55;
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
