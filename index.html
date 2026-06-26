@@ -825,6 +825,17 @@ body {
       </div>
     </div>
 
+    <div class="sec-label" style="margin-top:12px">残高モデル（メンテナンス）</div>
+    <div class="setting-card">
+      <div style="padding:14px;display:flex;flex-direction:column;gap:8px">
+        <div id="migration-status" style="font-size:13px;font-weight:700;line-height:1.6"></div>
+        <div style="font-size:12px;font-weight:500;color:var(--muted);line-height:1.6">移行すると、いまの各口座の残高をそのまま口座に焼き付けて保存します。残高の数字は変わりません。これをしておくと、あとで古い明細を消しても残高が崩れません。</div>
+        <button class="export-btn" id="migrate-btn" onclick="onClickMigrate()">🔒 残高モデルを移行する</button>
+        <div style="font-size:12px;font-weight:500;color:var(--muted);line-height:1.6;margin-top:6px">↓ 古いデータの削除は、移行が終わってからできるようになります。残高を確認してから、いつでも実行できます。</div>
+        <button class="export-btn" id="purge-btn" onclick="purgeOldData()">🧹 2年より古いデータを削除する</button>
+      </div>
+    </div>
+
     <div class="sec-label" style="margin-top:12px">データ管理</div>
     <div class="setting-card">
       <div style="padding:14px;display:flex;flex-direction:column;gap:8px">
@@ -1034,6 +1045,7 @@ const KEY_HISTORY  = 'kr_history';
 const KEY_API      = 'kr_apikey';
 const KEY_SAVINGS  = 'kr_savings';
 const KEY_SUMMARY  = 'kr_summary';
+const KEY_MIGRATION= 'kr_migration'; // α移行の記録 {migratedAt} 。未設定＝β方式（未移行）
 const KEY_WISHLIST = 'kr_wishlist';
 const KEY_FIXED    = 'kr_fixed';    // {items, email}
 const KEY_RECURRING= 'kr_recurring';// [{id,kind,fromWallet,toWallet,payee,amount,memo,goal,goalDate,total}]
@@ -1094,6 +1106,9 @@ let wallets = (LS.get(KEY_WALLETS) || DEFAULT_WALLETS.map(w => ({...w})))
 let history = LS.get(KEY_HISTORY) || [];
 let savings = LS.get(KEY_SAVINGS) || 0;
 let monthlySummaries = LS.get(KEY_SUMMARY) || [];
+// α移行の状態。{migratedAt:タイムスタンプ} があれば移行済み（α方式）、null なら未移行（β方式）。
+let migration = LS.get(KEY_MIGRATION) || null;
+function isMigrated(){ return !!(migration && migration.migratedAt); }
 let wishList = LS.get(KEY_WISHLIST) || [];
 // 旧フォーマット（{gas, tobacco, email}）→ 新フォーマット（{items, email}）の自動移行
 function loadFixedCosts(){
@@ -1250,15 +1265,26 @@ function currentYM(){ const d=now(); return ym(d.getFullYear(), d.getMonth()+1);
 // 収入・移動in・残高調整(増)で増え、支出・移動out・残高調整(減)で減る。
 // rolledOver はおこづかいリセット用の調整レコードなので残高には算入する（除外しない）。
 function walletBalance(walletName){
+  // 移行後（α方式）：口座の焼き付け残高 lastBalance を基点に、まだ焼き付けていない
+  //   （baked フラグの無い）履歴だけを足し引きする。焼き付け済み(baked)の古い明細は
+  //   既に lastBalance に含まれているので、削除しても残高は変わらない。
+  // 未移行（β方式）：従来どおり全履歴を足し引き（後方互換）。
+  const migrated = isMigrated();
+  let base = 0;
+  if(migrated){
+    const w = wallets.find(w => w.name === walletName);
+    base = (w && typeof w.lastBalance === 'number') ? w.lastBalance : 0;
+  }
   return history
     .filter(h => h.walletName === walletName)
+    .filter(h => migrated ? !h.baked : true)
     .reduce((s,h) => {
       if(h.type === 'income') return s + h.amount;
       if(h.type === 'transfer') return s + (h.transferDir === 'in' ? h.amount : -h.amount);
       if(h.type === 'balance_adjust') return s + h.diff; // diff は符号付き
       // 通常の支出
       return s - h.amount;
-    }, 0);
+    }, base);
 }
 // おこづかい4口座（group:'okozukai'）の保持残高合計（方式β）
 function okozukaiBalance(){
@@ -1993,6 +2019,8 @@ function renderSettings(){
   document.getElementById('inp-api').value = stored ? '●'.repeat(20) : '';
   // 定例項目
   renderRecurring();
+  // 残高モデル（移行状態）
+  renderMigrationStatus();
 }
 
 let fixedDirty = false;
@@ -2301,6 +2329,7 @@ function exportBackup(){
     wishList:         LS.get(KEY_WISHLIST) || wishList,
     fixedCosts:       LS.get(KEY_FIXED)    || fixedCosts,
     recurring:        LS.get(KEY_RECURRING)|| recurring,
+    migration:        LS.get(KEY_MIGRATION)|| migration,
   };
   const json = JSON.stringify(data, null, 2);
   const blob = new Blob([json], {type: 'application/json'});
@@ -2334,6 +2363,10 @@ function importBackup(input){
       if(data.wishList)         { wishList = data.wishList;                  LS.set(KEY_WISHLIST, wishList); }
       if(data.fixedCosts)       { fixedCosts = data.fixedCosts;              LS.set(KEY_FIXED,    fixedCosts); }
       if(data.recurring)        { recurring = data.recurring;                LS.set(KEY_RECURRING, recurring); }
+      // α移行状態：バックアップにあれば復元、無ければ（旧バックアップ）未移行に統一。
+      // ※ history 内の baked フラグ・wallets 内の lastBalance はそれぞれの配列と一緒に復元済み。
+      if(data.migration){ migration = data.migration; LS.set(KEY_MIGRATION, migration); }
+      else { migration = null; LS.del(KEY_MIGRATION); }
       renderHome(); renderHistory(); refreshMonthlyIfActive(); renderSelect(); renderSettings();
       showToast('✓ バックアップから復元しました');
     } catch(err) {
@@ -2349,8 +2382,122 @@ function resetAllData(){
   if(!confirm('本当に削除してよいですか？この操作は元に戻せません。')) return;
   history=[]; savings=0; monthlySummaries=[];
   LS.set(KEY_HISTORY,history); LS.set(KEY_SAVINGS,savings); LS.set(KEY_SUMMARY,monthlySummaries);
+  // α移行状態も解除し、焼き付け残高をクリア（履歴を消すので残高は0から再計算すべき）
+  migration = null; LS.del(KEY_MIGRATION);
+  wallets = wallets.map(w => ({ ...w, lastBalance: 0 }));
+  LS.set(KEY_WALLETS, wallets);
   renderHome(); renderHistory(); refreshMonthlyIfActive();
   showToast('データをリセットしました');
+}
+
+// ════════════════════════════════
+//  β→α 残高移行（D-2）— 設計メモ16 第5章
+// ════════════════════════════════
+// 【目的】古い明細を削除しても残高が壊れないようにする。
+//   現在の正しい残高（β方式で全履歴から算出）を各口座の lastBalance へ焼き付け、
+//   焼き付け済みの明細に baked フラグを付ける。以降 walletBalance は
+//   「lastBalance ＋ baked の付いていない履歴」で残高を出す（α方式）。
+//   → baked 明細はもう残高に影響しないので、安全に削除できる。
+//
+// 冪等：すでに移行済みなら何もしない（二重焼き付け防止）。
+
+// 設定画面の移行ボタン押下：確認してから移行を実行。
+function onClickMigrate(){
+  if(isMigrated()){ showToast('すでに移行済みです'); return; }
+  if(!confirm('残高モデルを移行します。\n\n・いまの各口座の残高をそのまま口座に保存します（数字は変わりません）。\n・移行後は古いデータの削除ができるようになります。\n\n念のため、先にバックアップ（JSON）を取っておくと安心です。\n移行してよいですか？')) return;
+  migrateToAlpha();
+  renderMigrationStatus();
+}
+
+// 設定画面：移行状態の表示と、ボタンの有効/無効を更新。
+function renderMigrationStatus(){
+  const statusEl = document.getElementById('migration-status');
+  const migBtn   = document.getElementById('migrate-btn');
+  const purgeBtn = document.getElementById('purge-btn');
+  if(!statusEl) return;
+  if(isMigrated()){
+    const d = new Date(migration.migratedAt);
+    const ds = `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    statusEl.innerHTML = `<span style="color:var(--ok)">✓ 移行済み（α方式）</span><br><span style="font-weight:500;color:var(--muted);font-size:12px">移行日時：${ds}</span>`;
+    if(migBtn){ migBtn.disabled = true; migBtn.style.opacity = '0.5'; migBtn.textContent = '✓ 移行済み'; }
+    if(purgeBtn){ purgeBtn.disabled = false; purgeBtn.style.opacity = '1'; }
+  } else {
+    statusEl.innerHTML = `<span style="color:var(--warn)">● 未移行（β方式）</span>`;
+    if(migBtn){ migBtn.disabled = false; migBtn.style.opacity = '1'; migBtn.textContent = '🔒 残高モデルを移行する'; }
+    // 未移行のあいだは削除ボタンを押せないように（押してもガードで弾くが、UIでも無効化）
+    if(purgeBtn){ purgeBtn.disabled = true; purgeBtn.style.opacity = '0.4'; }
+  }
+}
+
+// 設定画面の移行ボタン押下：確認してから移行を実行。
+function migrateToAlpha(){
+  if(isMigrated()){
+    showToast('すでに残高モデルは移行済みです');
+    return false;
+  }
+  // ① 現在の正しい残高を全口座について β方式で確定（移行直前の最後のβ計算）
+  //    この時点では migration 未設定なので walletBalance はβ方式で動く。
+  const baked = {};
+  wallets.forEach(w => { baked[w.name] = walletBalance(w.name); });
+
+  // ② 各口座へ焼き付け
+  wallets = wallets.map(w => ({ ...w, lastBalance: baked[w.name] }));
+  LS.set(KEY_WALLETS, wallets);
+
+  // ③ 現存する全履歴に baked:true を付ける（これらは lastBalance に取り込み済み）
+  history = history.map(h => ({ ...h, baked: true }));
+  LS.set(KEY_HISTORY, history);
+
+  // ④ 移行フラグを立てる（以降 walletBalance はα方式）
+  migration = { migratedAt: Date.now(), bakedCount: history.length };
+  LS.set(KEY_MIGRATION, migration);
+
+  renderHome(); renderHistory(); refreshMonthlyIfActive();
+  if(typeof renderSettings === 'function') renderSettings();
+  showToast('残高モデルを移行しました（各口座に現在残高を焼き付けました）');
+  return true;
+}
+
+// 一括削除の可否ガード：移行が完了していなければ削除を許可しない。
+// 戻り値 true=削除してよい / false=ブロック（メッセージ表示済み）。
+function canPurgeOldData(){
+  if(!isMigrated()){
+    alert('古いデータの削除はできません。\n先に「残高モデルの移行」を実行してください。\n（移行前に削除すると残高が壊れます）');
+    return false;
+  }
+  return true;
+}
+
+// 2年より古い明細・サマリを削除する。移行済み（baked 済み）の明細だけが対象。
+// 進捗バーの累計は lastBalance が保持しているので、削除しても巻き戻らない。
+function purgeOldData(){
+  if(!canPurgeOldData()) return;
+
+  const d = now();
+  // 「2年より古い」＝今月を含む直近24か月より前。境界：保持する最古の年月。
+  let keepY = d.getFullYear() - 2, keepM = d.getMonth() + 1; // 24か月前の同月以降を保持
+  const keepFloor = ym(keepY, keepM);
+
+  // 対象：baked 済み（移行で残高に取り込み済み）かつ keepFloor より古い明細のみ。
+  //   baked でない（移行後に追加した）明細は、たとえ日付が古くても残高に効くので消さない。
+  const targetDetails = history.filter(h => h.baked && ym(h.year, h.month) < keepFloor);
+  const targetSummaries = monthlySummaries.filter(s => ym(s.year, s.month) < keepFloor);
+
+  if(targetDetails.length === 0 && targetSummaries.length === 0){
+    showToast('削除対象の古いデータはありません');
+    return;
+  }
+
+  if(!confirm(`2年より古いデータを削除します。\n・明細：${targetDetails.length}件\n・月次サマリ：${targetSummaries.length}件\n\n残高は各口座に保持済みのため変わりません。\nこの操作は元に戻せません。よろしいですか？`)) return;
+  if(!confirm('本当に削除してよいですか？\n（削除した明細・AI評価は復元できません）')) return;
+
+  history = history.filter(h => !(h.baked && ym(h.year, h.month) < keepFloor));
+  monthlySummaries = monthlySummaries.filter(s => ym(s.year, s.month) >= keepFloor);
+  LS.set(KEY_HISTORY, history);
+  LS.set(KEY_SUMMARY, monthlySummaries);
+
+  renderHome(); renderHistory(); refreshMonthlyIfActive();
+  showToast(`古いデータを削除しました（明細${targetDetails.length}件・サマリ${targetSummaries.length}件）`);
 }
 
 function resetEverything(){
@@ -2358,6 +2505,7 @@ function resetEverything(){
   if(!confirm('本当に削除してよいですか？この操作は元に戻せません。')) return;
   localStorage.clear();
   history=[]; savings=0; monthlySummaries=[]; wishList=[]; recurring=DEFAULT_RECURRING.map(r => ({...r}));
+  migration = null;
   fixedCosts = { items: DEFAULT_FIXED.items.map(it => ({...it})), email:'' };
   wallets = DEFAULT_WALLETS.map(w => ({ lastBalance: 0, ...w }));
   LS.set(KEY_RECURRING, recurring); LS.set(KEY_FIXED, fixedCosts); LS.set(KEY_WALLETS, wallets);
