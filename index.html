@@ -1326,6 +1326,18 @@ body {
   </div>
 </div>
 
+<!-- ホーム：今月の定例項目（計上）モーダル -->
+<div id="recmonthly-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:300;align-items:flex-end;justify-content:center" onclick="closeRecMonthlyModal(event)">
+  <div id="recmonthly-modal" style="background:var(--surface);border-radius:20px 20px 0 0;padding:18px 18px 36px;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;box-sizing:border-box" onclick="event.stopPropagation()">
+    <div style="width:36px;height:3px;background:var(--border2);border-radius:2px;margin:0 auto 14px"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div style="font-size:17px;font-weight:900;color:var(--text)">定例を計上</div>
+      <button onclick="closeRecMonthlyModal()" style="background:none;border:none;font-size:24px;color:var(--muted);cursor:pointer;padding:0 4px;line-height:1;font-family:var(--sans)">×</button>
+    </div>
+    <div id="recmonthly-body"></div>
+  </div>
+</div>
+
 <!-- 定例項目 計上モーダル -->
 <div id="recpost-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:300;align-items:flex-end;justify-content:center" onclick="closeRecPostModal(event)">
   <div id="recpost-modal" style="background:var(--surface);border-radius:20px 20px 0 0;padding:20px 20px 44px;width:100%;max-width:480px;box-sizing:border-box" onclick="event.stopPropagation()">
@@ -3628,10 +3640,23 @@ function btShowTooltip(i){
   tt.innerHTML = html;
   tt.classList.add('show');
 }
-// ホーム：定例を計上 — レポートタブの月次（定例計上）へ移動
+// ホーム：定例を計上 — モーダルで今月の定例計上UIを開く（設計メモF-2）
 function doRecurring(){
-  showPage('report', document.querySelector('.nav-tab[onclick*="report"]'));
-  switchReportTab('monthly');
+  // 対象月は今月に合わせる
+  const d = now();
+  reportYear = d.getFullYear(); reportMonth = d.getMonth()+1;
+  document.getElementById('recmonthly-modal-overlay').style.display = 'flex';
+  renderRecurringMonthly('recmonthly-body');
+}
+function closeRecMonthlyModal(e){
+  if(e && e.target !== document.getElementById('recmonthly-modal-overlay')) return;
+  document.getElementById('recmonthly-modal-overlay').style.display = 'none';
+  // 描画先をレポートタブ側に戻す（次回レポート月次描画のため）
+  recMonthlyTarget = 'recurring-monthly';
+}
+function isRecMonthlyModalOpen(){
+  const ov = document.getElementById('recmonthly-modal-overlay');
+  return ov && ov.style.display === 'flex';
 }
 
 // ════════════════════════════════
@@ -3665,10 +3690,12 @@ function fixedPostCategory(payee){
 // おこづかい繰越カード（常設・現在残高ベース）
 // 式① 補充額＝OKOZUKAI_TOTAL −（おこづかい4口座の現在残高合計）
 // 式② 自由貯金へ回す額＝おこづかい4口座の現在残高合計
-function renderRecurringMonthly(){
-  const box = document.getElementById('recurring-monthly');
+let recMonthlyTarget = 'recurring-monthly'; // 描画先ID（ホームモーダル時は recmonthly-body）
+function renderRecurringMonthly(targetId){
+  if(targetId) recMonthlyTarget = targetId;
+  const box = document.getElementById(recMonthlyTarget);
   if(!box) return;
-  if(!recurring.length){ box.innerHTML = ''; return; }
+  if(!recurring.length){ box.innerHTML = '<div class="empty-msg" style="padding:20px 0;text-align:center;color:var(--muted)">定例項目がありません</div>'; return; }
 
   const y = reportYear, m = reportMonth;
   const fixedItems   = recurring.filter(it => it.kind === 'fixed');
@@ -3856,8 +3883,13 @@ function confirmRecurringPost(){
   LS.set(KEY_HISTORY, history);
   recPostChecked.clear();
   closeRecPostModal();
-  renderRecurringMonthly();
+  renderRecurringMonthly();  // 現在の描画先（recMonthlyTarget）を再描画
   renderHome(); renderHistory();
+  // ホームモーダル経由なら、全項目が計上済みになった時点で閉じる
+  if(isRecMonthlyModalOpen()){
+    const allPosted = recurring.every(it => isRecurringPosted(it.id, reportYear, reportMonth));
+    if(allPosted) closeRecMonthlyModal();
+  }
   showToast(`✓ ${count}件の定例項目を計上しました`);
 }
 
