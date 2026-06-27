@@ -2008,10 +2008,10 @@ function hfRowView(h){
     if(h.transferDir==='in'){
       // 孤立in（ペアout無し）。受取として表示。
       return { icon:'↔', iconClass:'transfer', memo:h.memo||'振替（受取）',
-        sub:`${h.transferPeerName||'?'} → ${h.walletName}`, cat:'', amtClass:'transfer', amtHtml:'振替', incAmt:0, expAmt:0 };
+        sub:`${h.transferPeerName||'?'} → ${h.walletName}`, cat:'', amtClass:'transfer', amtHtml:`振替 ¥${fmt(h.amount)}`, incAmt:0, expAmt:0 };
     }
     return { icon:'↔', iconClass:'transfer', memo:h.memo||'振替',
-      sub:`${h.walletName} → ${h.transferPeerName||'?'}`, cat:'', amtClass:'transfer', amtHtml:'振替', incAmt:0, expAmt:0 };
+      sub:`${h.walletName} → ${h.transferPeerName||'?'}`, cat:'', amtClass:'transfer', amtHtml:`振替 ¥${fmt(h.amount)}`, incAmt:0, expAmt:0 };
   }
   if(isIncome){
     return { icon:'💰', iconClass:'income', memo:h.memo||'収入', sub:h.walletName, cat:'',
@@ -2065,7 +2065,8 @@ function hdOpenDetail(id){
   else if(h.wishItemId) kindLabel='ほしいもの購入';
 
   let fields = `<div class="hd-field"><span class="hd-field-label">種別</span><span class="hd-field-value">${kindLabel}</span></div>`;
-  fields += `<div class="hd-field"><span class="hd-field-label">金額</span><span class="hd-field-value">${v.amtHtml.replace('振替','—')}</span></div>`;
+  const amtDisp = (h.type==='transfer') ? `¥${fmt(h.amount)}` : v.amtHtml;
+  fields += `<div class="hd-field"><span class="hd-field-label">金額</span><span class="hd-field-value">${amtDisp}</span></div>`;
   if(h.type==='transfer'){
     fields += `<div class="hd-field"><span class="hd-field-label">移動元</span><span class="hd-field-value">${h.transferDir==='in'?(h.transferPeerName||'?'):h.walletName}</span></div>`;
     fields += `<div class="hd-field"><span class="hd-field-label">移動先</span><span class="hd-field-value">${h.transferDir==='in'?h.walletName:(h.transferPeerName||'?')}</span></div>`;
