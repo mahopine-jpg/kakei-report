@@ -23,6 +23,7 @@
   --danger: #c02020;
   --danger-bg: #fce8e8;
   --tag-bg: #e4e4e0;
+  --accent: #1a7fe8;
   --sans: 'Noto Sans JP', sans-serif;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -33,24 +34,34 @@ body {
   min-height: 100vh;
   max-width: 480px;
   margin: 0 auto;
-  padding-bottom: 130px;
+  padding-bottom: 76px;
 }
 
 /* ── Nav ── */
 .nav {
-  position: sticky; top: 0; z-index: 100;
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 480px; z-index: 250;
   background: var(--surface);
-  border-bottom: 2px solid var(--border);
-  display: flex;
+  border-top: 0.5px solid #e8e8e8;
+  display: flex; justify-content: space-around;
+  padding: 8px 0 7px;
 }
 .nav-tab {
-  flex: 1; padding: 15px 0; text-align: center;
-  font-size: 14px; font-weight: 700; color: var(--muted);
-  cursor: pointer; border-bottom: 3px solid transparent;
-  margin-bottom: -2px; transition: color .15s, border-color .15s;
-  user-select: none;
+  flex: 1; text-align: center;
+  cursor: pointer; user-select: none;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  font-size: 10px; font-weight: 500; color: #bbb;
+  background: none;
 }
-.nav-tab.active { color: var(--text); border-color: var(--text); }
+.nav-tab .nav-icon {
+  width: 40px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 8px;
+}
+.nav-tab svg { width: 22px; height: 22px; stroke: #bbb; }
+.nav-tab.active { color: var(--accent); font-weight: 700; }
+.nav-tab.active .nav-icon { background: var(--accent); }
+.nav-tab.active svg { stroke: #fff; width: 19px; height: 19px; }
 
 /* ── Pages ── */
 .page { display: none; }
@@ -200,24 +211,25 @@ body {
   font-size: 16px; font-weight: 700; color: var(--muted);
 }
 
-/* ── Add panel ── */
+/* ── Add modal (記帳モーダル) ── */
 .add-panel {
-  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  position: fixed; inset: 0; z-index: 300;
+  background: rgba(0,0,0,.45);
+  display: flex; align-items: flex-end; justify-content: center;
+  padding: 0;
+}
+.add-panel.hidden { display: none; }
+.panel-box {
   width: 100%; max-width: 480px;
-  background: var(--surface); border-top: 2px solid var(--border);
-  padding: 14px 20px 40px; z-index: 200;
-  transition: transform .3s cubic-bezier(.4,0,.2,1);
-  max-height: 92vh;
-  overflow-x: hidden;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  background: var(--surface);
+  border-radius: 20px 20px 0 0;
+  padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
   box-sizing: border-box;
+  max-height: 90vh; overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  animation: sheetUp .25s cubic-bezier(.4,0,.2,1);
 }
-.add-panel.hidden { transform: translate(-50%, calc(100% - 70px)); }
-.panel-handle {
-  width: 40px; height: 4px; background: var(--border2);
-  border-radius: 2px; margin: 0 auto 14px; cursor: pointer;
-}
+@keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 .panel-title {
   font-size: 13px; font-weight: 700; color: var(--muted);
   letter-spacing: 1px; text-transform: uppercase; margin-bottom: 12px;
@@ -515,7 +527,7 @@ body {
 
 /* ── Toast ── */
 .toast {
-  position: fixed; bottom: 140px; left: 50%;
+  position: fixed; bottom: 80px; left: 50%;
   transform: translateX(-50%) translateY(10px);
   background: var(--text); color: #fff; padding: 12px 20px;
   border-radius: 12px; font-size: 15px; font-weight: 700;
@@ -576,10 +588,30 @@ body {
 <body>
 
 <nav class="nav">
-  <div class="nav-tab active"  onclick="showPage('home',this)">ホーム</div>
-  <div class="nav-tab"         onclick="showPage('history',this)">履歴</div>
-  <div class="nav-tab"         onclick="showPage('report',this)">集計</div>
-  <div class="nav-tab"         onclick="showPage('settings',this)">設定</div>
+  <div class="nav-tab active" onclick="showPage('home',this)">
+    <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l-2 0l9 -9l9 9l-2 0"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7"/><path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6"/></svg></div>
+    <span>ホーム</span>
+  </div>
+  <div class="nav-tab" onclick="showPage('summary',this)">
+    <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13a1 1 0 0 1 1 -1h2a1 1 0 0 1 1 1v6a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1z"/><path d="M9 9a1 1 0 0 1 1 -1h2a1 1 0 0 1 1 1v10a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1z"/><path d="M15 5a1 1 0 0 1 1 -1h2a1 1 0 0 1 1 1v14a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1z"/><path d="M4 20h14"/></svg></div>
+    <span>集計</span>
+  </div>
+  <div class="nav-tab" onclick="showPage('report',this)">
+    <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13m-5 0a5 5 0 1 0 10 0a5 5 0 1 0 -10 0"/><path d="M13 7a5 5 0 1 1 -1.524 9.765"/><path d="M8 11v2h2"/><path d="M11 16v.01"/></svg></div>
+    <span>レポート</span>
+  </div>
+  <div class="nav-tab" onclick="showPage('history',this)">
+    <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l11 0"/><path d="M9 12l11 0"/><path d="M9 18l11 0"/><path d="M5 6l0 .01"/><path d="M5 12l0 .01"/><path d="M5 18l0 .01"/></svg></div>
+    <span>履歴</span>
+  </div>
+  <div class="nav-tab" onclick="showPage('consult',this)">
+    <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20l1.3 -3.9a9 8 0 1 1 3.4 2.9l-4.7 1"/><path d="M12 12l0 .01"/><path d="M8 12l0 .01"/><path d="M16 12l0 .01"/></svg></div>
+    <span>相談</span>
+  </div>
+  <div class="nav-tab" onclick="showPage('settings',this)">
+    <div class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z"/><path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"/></svg></div>
+    <span>設定</span>
+  </div>
 </nav>
 
 <!-- ════ HOME ════ -->
@@ -592,10 +624,19 @@ body {
       <span>総資産 <strong id="asset-txt">¥0</strong></span>
     </div>
   </div>
+  <div style="display:flex;gap:8px;margin:10px 12px 0">
+    <button onclick="showBalanceTrend()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--surface);border:1.5px solid var(--border);border-radius:11px;padding:11px 0;font-size:13.5px;font-weight:700;color:var(--text);font-family:var(--sans);cursor:pointer">📈 増減を確認</button>
+    <button onclick="doRecurring()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--surface);border:1.5px solid var(--border);border-radius:11px;padding:11px 0;font-size:13.5px;font-weight:700;color:var(--text);font-family:var(--sans);cursor:pointer">📅 定例を計上</button>
+  </div>
   <div class="sec-label" id="label-okozukai">おこづかい口座</div>
   <div class="cards" id="cards-okozukai"></div>
   <div class="sec-label" id="label-carry" style="margin-top:18px">繰越口座</div>
   <div class="cards" id="cards-carry"></div>
+</div>
+
+<!-- ════ SUMMARY (F-3で実装) ════ -->
+<div class="page" id="page-summary">
+  <div style="padding:40px 16px;text-align:center;color:var(--muted);font-size:14px;font-weight:700">集計タブ（F-3で実装予定）</div>
 </div>
 
 <!-- ════ HISTORY ════ -->
@@ -658,10 +699,8 @@ body {
 
     <!-- タブ -->
     <div class="report-tab-row">
-      <div class="report-tab active" id="rtab-weekly"  onclick="switchReportTab('weekly')">週次</div>
-      <div class="report-tab"        id="rtab-consult" onclick="switchReportTab('consult')">購入相談</div>
-      <div class="report-tab"        id="rtab-wish"    onclick="switchReportTab('wish')">欲しいもの</div>
-      <div class="report-tab"        id="rtab-monthly" onclick="switchReportTab('monthly')">月次</div>
+      <div class="report-tab active" id="rtab-weekly"  onclick="switchReportTab('weekly')">週次チェック</div>
+      <div class="report-tab"        id="rtab-monthly" onclick="switchReportTab('monthly')">月次確定</div>
     </div>
 
     <!-- ① 週次チェック -->
@@ -695,36 +734,7 @@ body {
       </div>
     </div>
 
-    <!-- ② 購入相談 -->
-    <div id="rsec-consult" style="display:none">
-      <div class="report-card" style="margin-bottom:8px">
-        <div class="report-section">
-          <div class="report-sec-label">欲しいものを相談する</div>
-          <input type="text" class="inp-memo" id="consult-name" placeholder="欲しいもの（例：AirPods）" style="margin-top:4px">
-          <div class="field-row" style="align-items:center;margin-bottom:0">
-            <span class="yen" style="flex-shrink:0">¥</span>
-            <input type="number" class="inp-amount" id="consult-price" placeholder="0" inputmode="numeric" style="flex:1;min-width:0;font-size:22px">
-          </div>
-        </div>
-      </div>
-      <button class="report-btn" id="consult-btn" onclick="runConsult()">AIに相談する</button>
-      <div id="consult-ai-wrap" style="display:none">
-        <div class="report-card" style="margin-bottom:8px">
-          <div class="report-section">
-            <div class="report-sec-label">AI アドバイス</div>
-            <div id="consult-ai-output"></div>
-          </div>
-        </div>
-        <button class="export-btn" id="add-wish-btn" onclick="addToWishList()" style="background:var(--text);color:#fff;border-color:var(--text)">⭐ 欲しいものリストに追加</button>
-      </div>
-    </div>
-
-    <!-- ③ 欲しいものリスト -->
-    <div id="rsec-wish" style="display:none">
-      <div id="wish-list-container"></div>
-    </div>
-
-    <!-- ④ 月次（確定） -->
+    <!-- ② 月次（確定） -->
     <div id="rsec-monthly" style="display:none">
       <div class="month-selector">
         <button class="month-btn" id="report-prev-btn" onclick="changeReportMonth(-1)">‹</button>
@@ -750,6 +760,45 @@ body {
       <div class="hint" id="close-hint" style="font-size:12px;color:var(--muted);font-weight:500;line-height:1.6;margin-top:8px">※「月次確定」を押すと確認画面が出ます。確定するまで何も記録されません（AIも呼びません）。</div>
     </div>
 
+  </div>
+</div>
+
+<!-- ════ CONSULT (購入相談＋ほしいもの) ════ -->
+<div class="page" id="page-consult">
+  <div class="report-wrap">
+    <div class="report-tab-row">
+      <div class="report-tab active" id="ctab-consult" onclick="switchConsultTab('consult')">購入相談</div>
+      <div class="report-tab"        id="ctab-wish"    onclick="switchConsultTab('wish')">ほしいもの</div>
+    </div>
+
+    <!-- 購入相談 -->
+    <div id="csec-consult">
+      <div class="report-card" style="margin-bottom:8px">
+        <div class="report-section">
+          <div class="report-sec-label">欲しいものを相談する</div>
+          <input type="text" class="inp-memo" id="consult-name" placeholder="欲しいもの（例：AirPods）" style="margin-top:4px">
+          <div class="field-row" style="align-items:center;margin-bottom:0">
+            <span class="yen" style="flex-shrink:0">¥</span>
+            <input type="number" class="inp-amount" id="consult-price" placeholder="0" inputmode="numeric" style="flex:1;min-width:0;font-size:22px">
+          </div>
+        </div>
+      </div>
+      <button class="report-btn" id="consult-btn" onclick="runConsult()">AIに相談する</button>
+      <div id="consult-ai-wrap" style="display:none">
+        <div class="report-card" style="margin-bottom:8px">
+          <div class="report-section">
+            <div class="report-sec-label">AI アドバイス</div>
+            <div id="consult-ai-output"></div>
+          </div>
+        </div>
+        <button class="export-btn" id="add-wish-btn" onclick="addToWishList()" style="background:var(--text);color:#fff;border-color:var(--text)">⭐ 欲しいものリストに追加</button>
+      </div>
+    </div>
+
+    <!-- ほしいものリスト -->
+    <div id="csec-wish" style="display:none">
+      <div id="wish-list-container"></div>
+    </div>
   </div>
 </div>
 
@@ -872,8 +921,8 @@ body {
 </div>
 
 <!-- ════ ADD PANEL ════ -->
-<div class="add-panel hidden" id="add-panel">
-  <div class="panel-handle" id="panel-handle"></div>
+<div class="add-panel hidden" id="add-panel" onclick="if(event.target===this)closePanel()">
+  <div class="panel-box">
   <div class="panel-title">記帳する</div>
 
   <!-- タブ切り替え -->
@@ -968,6 +1017,7 @@ body {
       <button onclick="closePanel()" style="flex:1;background:var(--bg);color:var(--muted);border:1.5px solid var(--border);border-radius:12px;padding:13px 0;font-size:15px;font-weight:700;font-family:var(--sans);cursor:pointer">キャンセル</button>
       <button class="add-btn" id="add-transfer-btn" onclick="addTransfer()" disabled style="flex:1.4;margin:0">移動する</button>
     </div>
+  </div>
   </div>
 </div>
 
@@ -1461,10 +1511,40 @@ function renderHome(){
   });
 }
 // 口座カードの「記帳」ボタン：その口座を選んで記帳パネルを開く
+// カード「＋記帳」から開いたときに選ばれた口座インデックス。
+// 支出・収入・口座移動のどのタブに切り替えても、この口座を初期選択にする。
+let txWalletIdx = 0;
 function openTxForWallet(i, e){
   if(e) e.stopPropagation();
-  document.getElementById('wallet-select').value = i;
+  txWalletIdx = i;
+  applyWalletDefault('expense');
+  switchPanelTab('expense');
   openPanel();
+}
+
+// 記憶した口座(txWalletIdx)を指定タブのセレクトに反映する。
+// 編集モード中(editingTxId / editingIncomeId)は触らない。
+function applyWalletDefault(tab){
+  if(tab==='expense'){
+    if(editingTxId) return;
+    const sel = document.getElementById('wallet-select');
+    if(sel) sel.value = txWalletIdx;
+    if(typeof onWalletSelectChange==='function') onWalletSelectChange();
+  } else if(tab==='income'){
+    if(editingIncomeId) return;
+    const sel = document.getElementById('income-wallet');
+    if(sel) sel.value = txWalletIdx;
+  } else if(tab==='transfer'){
+    if(editingTxId) return;
+    const from = document.getElementById('transfer-from');
+    const to   = document.getElementById('transfer-to');
+    if(from) from.value = txWalletIdx;
+    // 移動先は移動元と別口座（先頭から最初の別口座）を選ぶ
+    if(to){
+      const other = wallets.findIndex((w,idx)=>idx!==txWalletIdx);
+      to.value = other >= 0 ? other : txWalletIdx;
+    }
+  }
 }
 
 // ════════════════════════════════
@@ -1655,6 +1735,7 @@ function switchPanelTab(tab){
   document.getElementById('tab-transfer').classList.toggle('active', tab==='transfer');
   const titles = { expense:'記帳する', income:'収入を記帳', transfer:'口座移動' };
   document.querySelector('.panel-title').textContent = titles[tab] || '記帳する';
+  applyWalletDefault(tab);
 }
 
 // ────────────────────────────────
@@ -2519,13 +2600,32 @@ function resetEverything(){
 let currentReportTab = 'weekly';
 function switchReportTab(tab){
   currentReportTab = tab;
-  ['weekly','consult','wish','monthly'].forEach(t => {
+  ['weekly','monthly'].forEach(t => {
     document.getElementById('rsec-'+t).style.display = t===tab ? 'block' : 'none';
     document.getElementById('rtab-'+t).classList.toggle('active', t===tab);
   });
   if(tab==='weekly')  { updateWeekLabel(); renderWeeklyStats(); }
-  if(tab==='wish')    renderWishList();
   if(tab==='monthly'){ updateReportMonthLabel(); renderMonthlyView(); }
+}
+
+let currentConsultTab = 'consult';
+function switchConsultTab(tab){
+  currentConsultTab = tab;
+  ['consult','wish'].forEach(t => {
+    document.getElementById('csec-'+t).style.display = t===tab ? 'block' : 'none';
+    document.getElementById('ctab-'+t).classList.toggle('active', t===tab);
+  });
+  if(tab==='wish') renderWishList();
+}
+
+// ホーム：増減を確認（残高推移グラフ）— F-7で本実装。現状は仮。
+function showBalanceTrend(){
+  showToast('残高推移グラフは準備中です（F-7で実装）');
+}
+// ホーム：定例を計上 — レポートタブの月次（定例計上）へ移動
+function doRecurring(){
+  showPage('report', document.querySelector('.nav-tab[onclick*="report"]'));
+  switchReportTab('monthly');
 }
 
 // ════════════════════════════════
@@ -3938,7 +4038,6 @@ function closePanel(){
   document.querySelector('.panel-title').textContent='記帳する';
   document.getElementById('add-tx-btn').textContent='記帳する';
 }
-document.getElementById('panel-handle').onclick = () => panelOpen ? closePanel() : openPanel();
 
 // 月次タブを開いている時だけ、月次ビューを再描画する（import/reset後の反映用）。
 function refreshMonthlyIfActive(){
@@ -3966,6 +4065,9 @@ function showPage(id, tab){
   if(id==='history'){ populateFilterOptions(); renderHistory(); closeCsvPanel(); }
   if(id==='report'){
     switchReportTab('weekly');
+  }
+  if(id==='consult'){
+    switchConsultTab('consult');
   }
   closePanel();
 }
