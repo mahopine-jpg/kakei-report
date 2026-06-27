@@ -67,6 +67,85 @@ body {
 .page { display: none; }
 .page.active { display: block; }
 
+/* ── Summary tab (F-3) ── */
+.su-month-nav {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--surface); border-bottom: 0.5px solid #e8e8e8;
+  padding: 10px 16px; position: sticky; top: 0; z-index: 10;
+}
+.su-nav-btn {
+  background: none; border: none; cursor: pointer;
+  font-size: 20px; color: var(--accent); padding: 2px 6px; font-family: var(--sans);
+}
+.su-nav-btn:disabled { color: #d0d0d0; cursor: default; }
+.su-month-label { font-size: 16px; font-weight: 700; color: var(--text); }
+.su-period-tabs { display: flex; background: #f0f0f0; border-radius: 8px; padding: 3px; gap: 2px; }
+.su-period-tab { padding: 5px 14px; font-size: 12px; font-weight: 700; color: var(--muted); border-radius: 6px; cursor: pointer; }
+.su-period-tab.active { background: var(--surface); color: var(--text); }
+.su-summary-card { background: var(--surface); border-bottom: 0.5px solid #e8e8e8; padding: 14px 16px; }
+.su-summary-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.su-summary-item { text-align: center; flex: 1; }
+.su-summary-lbl { font-size: 11px; color: #999; margin-bottom: 3px; }
+.su-summary-amt { font-size: 17px; font-weight: 700; }
+.su-summary-div { font-size: 14px; color: #ccc; }
+.su-type-tabs { display: flex; background: #f0f0f0; border-radius: 8px; padding: 3px; }
+.su-type-tab { flex: 1; text-align: center; padding: 6px 0; font-size: 13px; font-weight: 700; color: var(--muted); border-radius: 6px; cursor: pointer; }
+.su-type-tab.active { background: var(--surface); color: var(--text); }
+.su-group-header { display: flex; justify-content: space-between; align-items: center; padding: 7px 16px; background: #f0f0f0; border-top: 0.5px solid #e8e8e8; border-bottom: 0.5px solid #e8e8e8; }
+.su-group-title { font-size: 12px; font-weight: 700; color: #666; }
+.su-group-meta { font-size: 12px; color: #999; }
+.su-group-meta.over { color: #e84040; }
+.su-item-row { display: flex; align-items: center; padding: 11px 16px; border-bottom: 0.5px solid #f0f0f0; background: var(--surface); gap: 12px; cursor: pointer; }
+.su-item-row:active { background: #f8f8f8; }
+.su-cat-icon { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 16px; color: #fff; }
+.su-item-info { flex: 1; min-width: 0; }
+.su-item-name { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.su-item-bar-wrap { height: 3px; background: #eee; border-radius: 2px; }
+.su-item-bar { height: 3px; border-radius: 2px; }
+.su-item-right { text-align: right; flex-shrink: 0; }
+.su-item-amount { font-size: 14px; font-weight: 700; color: var(--text); }
+.su-item-budget { font-size: 11px; color: #999; margin-top: 2px; }
+.su-item-budget.over { color: #e84040; }
+.su-chevron { color: #d0d0d0; font-size: 14px; flex-shrink: 0; }
+.su-subtotal-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; background: #fafafa; border-bottom: 0.5px solid #e8e8e8; border-top: 0.5px solid #e8e8e8; margin-bottom: 8px; }
+.su-subtotal-label { font-size: 13px; font-weight: 700; color: var(--text); }
+.su-subtotal-right { text-align: right; }
+.su-subtotal-amount { font-size: 15px; font-weight: 700; color: var(--text); }
+.su-subtotal-budget { font-size: 11px; color: #999; margin-top: 2px; }
+.su-subtotal-budget.over { color: #e84040; }
+.su-csv-footer { background: var(--surface); border-top: 0.5px solid #e8e8e8; padding: 14px 16px; }
+
+/* ── Drilldown (F-3) ── */
+.dd-header { display: flex; align-items: center; gap: 8px; padding: 14px 12px 12px; background: var(--surface); border-bottom: 0.5px solid #e8e8e8; position: sticky; top: 0; z-index: 10; }
+.dd-back-btn { background: none; border: none; cursor: pointer; color: var(--accent); font-size: 15px; font-weight: 700; font-family: var(--sans); padding: 2px 8px 2px 0; }
+.dd-header-title { font-size: 17px; font-weight: 700; color: var(--text); flex: 1; }
+.dd-header-badge { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; color: #fff; }
+.dd-month-total { background: var(--surface); padding: 14px 16px; border-bottom: 0.5px solid #e8e8e8; display: flex; justify-content: space-between; align-items: flex-end; }
+.dd-total-label { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.dd-total-amount { font-size: 28px; font-weight: 900; color: var(--text); letter-spacing: -0.5px; }
+.dd-total-budget { font-size: 12px; color: var(--muted); }
+.dd-total-diff { font-weight: 700; display: block; margin-top: 2px; font-size: 13px; }
+.dd-chart-section { background: var(--surface); padding: 12px 16px 8px; border-bottom: 0.5px solid #e8e8e8; }
+.dd-chart-avg { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+.dd-chart-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.dd-chart-bars { display: flex; align-items: flex-end; gap: 4px; height: 80px; width: max-content; min-width: 100%; padding-bottom: 2px; }
+.dd-chart-col { display: flex; flex-direction: column; align-items: center; gap: 3px; width: 26px; cursor: pointer; }
+.dd-chart-bar-wrap { width: 100%; display: flex; flex-direction: column; justify-content: flex-end; height: 62px; }
+.dd-chart-bar { width: 100%; border-radius: 3px 3px 0 0; background: #c8d8f0; }
+.dd-chart-bar.is-current { background: var(--accent); }
+.dd-chart-bar.is-over { background: #e84040; }
+.dd-chart-bar.is-selected { background: #0a5fbe; }
+.dd-chart-month { font-size: 9px; color: #aaa; white-space: nowrap; }
+.dd-chart-month.is-current { color: var(--accent); font-weight: 700; }
+.dd-detail-section { background: var(--bg); }
+.dd-date-header { padding: 7px 16px; font-size: 12px; font-weight: 700; color: var(--muted); background: #f0f0f0; border-bottom: 0.5px solid #e8e8e8; }
+.dd-detail-row { display: flex; align-items: center; padding: 11px 16px; border-bottom: 0.5px solid #f0f0f0; background: var(--surface); gap: 10px; }
+.dd-detail-icon { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 15px; color: #fff; }
+.dd-detail-info { flex: 1; min-width: 0; }
+.dd-detail-memo { font-size: 14px; font-weight: 700; color: var(--text); }
+.dd-detail-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.dd-detail-amount { font-size: 14px; font-weight: 700; color: var(--text); }
+
 /* ── Summary ── */
 .summary {
   background: var(--surface);
@@ -634,9 +713,62 @@ body {
   <div class="cards" id="cards-carry"></div>
 </div>
 
-<!-- ════ SUMMARY (F-3で実装) ════ -->
+<!-- ════ SUMMARY（集計タブ F-3）════ -->
 <div class="page" id="page-summary">
-  <div style="padding:40px 16px;text-align:center;color:var(--muted);font-size:14px;font-weight:700">集計タブ（F-3で実装予定）</div>
+
+  <!-- 月セレクタ＋週/月切り替え -->
+  <div class="su-month-nav">
+    <button class="su-nav-btn" id="su-prev-btn" onclick="suChangeMonth(-1)">＜</button>
+    <span class="su-month-label" id="su-month-label">2026年6月</span>
+    <button class="su-nav-btn" id="su-next-btn" onclick="suChangeMonth(+1)">＞</button>
+    <div class="su-period-tabs">
+      <div class="su-period-tab" id="su-tab-week" onclick="suSwitchPeriod('week')">週</div>
+      <div class="su-period-tab active" id="su-tab-month" onclick="suSwitchPeriod('month')">月</div>
+    </div>
+  </div>
+
+  <!-- 収支サマリ -->
+  <div class="su-summary-card" id="su-summary-card">
+    <div class="su-summary-row">
+      <div class="su-summary-item">
+        <div class="su-summary-lbl">収入</div>
+        <div class="su-summary-amt" id="su-income" style="color:#1a7fe8">¥0</div>
+      </div>
+      <div class="su-summary-div">−</div>
+      <div class="su-summary-item">
+        <div class="su-summary-lbl">支出</div>
+        <div class="su-summary-amt" id="su-expense" style="color:#e84040">¥0</div>
+      </div>
+      <div class="su-summary-div">=</div>
+      <div class="su-summary-item">
+        <div class="su-summary-lbl">収支</div>
+        <div class="su-summary-amt" id="su-net" style="color:#1a9e6e">¥0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- カテゴリリスト（JS描画） -->
+  <div id="su-category-list"></div>
+
+  <!-- CSV出力 -->
+  <div class="su-csv-footer">
+    <button id="su-csv-btn" onclick="exportSummaryCsv()" style="width:100%;padding:12px;background:var(--surface);border:1.5px solid #d0d0d0;border-radius:10px;font-size:14px;font-weight:700;color:#555;font-family:var(--sans);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+      ⬇ <span id="su-csv-label">CSVを出力</span>
+    </button>
+  </div>
+
+</div>
+
+<!-- ════ DRILLDOWN（集計→費目詳細 F-3）════ -->
+<div class="page" id="page-drilldown">
+  <div class="dd-header">
+    <button class="dd-back-btn" onclick="closeDrilldown()">＜ 戻る</button>
+    <span class="dd-header-title" id="dd-title">費目名</span>
+    <span class="dd-header-badge" id="dd-badge" style="background:var(--accent)">グループ</span>
+  </div>
+  <div class="dd-month-total" id="dd-month-total"></div>
+  <div class="dd-chart-section" id="dd-chart-section"></div>
+  <div class="dd-detail-section" id="dd-detail-section"></div>
 </div>
 
 <!-- ════ HISTORY ════ -->
@@ -2618,7 +2750,416 @@ function switchConsultTab(tab){
   if(tab==='wish') renderWishList();
 }
 
-// ホーム：増減を確認（残高推移グラフ）— F-7で本実装。現状は仮。
+// ════════════════════════════════
+//  集計タブ F-3
+// ════════════════════════════════
+
+// カテゴリメタ（絵文字アイコン・色）
+const SU_CAT_META = {
+  'ガソリン代':      { icon:'⛽', color:'#f59e0b' },
+  'タバコ代':        { icon:'🚬', color:'#64748b' },
+  '定期代':          { icon:'🏍', color:'#1a7fe8' },
+  '医療費':          { icon:'🩺', color:'#10b981' },
+  '食費':            { icon:'🍽', color:'#e84040' },
+  '日用品':          { icon:'🛒', color:'#f59e0b' },
+  '趣味・娯楽':      { icon:'🎮', color:'#8b5cf6' },
+  '交際費':          { icon:'👥', color:'#ec4899' },
+  '雑費':            { icon:'📦', color:'#94a3b8' },
+  '司法書士返済':    { icon:'🏦', color:'#1e3a5f' },
+  '借金返済(親へ)':  { icon:'🤝', color:'#92400e' },
+  '家賃(親へ)':      { icon:'🏠', color:'#92400e' },
+};
+function suCatMeta(name){
+  return SU_CAT_META[name] || { icon:'💴', color:'#888' };
+}
+
+// 集計タブの状態（year/month/period）
+const suNow = () => { const d = now(); return { y: d.getFullYear(), m: d.getMonth()+1 }; };
+let suYear, suMonth, suPeriod = 'month', suWeekOffset = 0;
+(function initSuYM(){ const {y,m} = suNow(); suYear=y; suMonth=m; })();
+
+// 週範囲を返す（suWeekOffset は 0=今週, -1=先週 …）
+function suGetWeekRange(offset){
+  offset = (offset !== undefined) ? offset : suWeekOffset;
+  const today = now();
+  const dow = today.getDay();
+  const sat = new Date(today);
+  sat.setDate(today.getDate() - ((dow+1)%7) + offset*7);
+  sat.setHours(0,0,0,0);
+  const fri = new Date(sat); fri.setDate(sat.getDate()+6); fri.setHours(23,59,59,999);
+  return {start: sat, end: fri};
+}
+
+function suChangeMonth(delta){
+  if(suPeriod === 'week'){
+    suWeekOffset += delta;
+    const cur = suNow();
+    // 未来週には進めない
+    const {start} = suGetWeekRange(suWeekOffset);
+    if(start > now()) suWeekOffset -= delta;
+  } else {
+    suMonth += delta;
+    if(suMonth > 12){ suMonth=1; suYear++; }
+    if(suMonth < 1) { suMonth=12; suYear--; }
+  }
+  renderSummaryTab();
+}
+
+function suSwitchPeriod(p){
+  suPeriod = p;
+  document.getElementById('su-tab-week').classList.toggle('active', p==='week');
+  document.getElementById('su-tab-month').classList.toggle('active', p==='month');
+  // 週に切り替えたとき、年月を今の週の年月に合わせる
+  if(p==='week'){
+    const {start} = suGetWeekRange(0);
+    suWeekOffset = 0; suYear = start.getFullYear(); suMonth = start.getMonth()+1;
+  }
+  renderSummaryTab();
+}
+
+function renderSummaryTab(){
+  const {y,m} = suNow();
+
+  let bd; // breakdown
+  let labelText;
+
+  if(suPeriod === 'month'){
+    bd = buildMonthlyBreakdown(suYear, suMonth);
+    labelText = `${suYear}年${suMonth}月`;
+
+    // 次月ボタン：未来月は無効
+    const isCurrentOrFuture = (suYear > y) || (suYear === y && suMonth >= m);
+    document.getElementById('su-next-btn').disabled = isCurrentOrFuture;
+    // 前月ボタン：最古データ月まで
+    const oldest = oldestSelectableYM();
+    let canPrev = true;
+    if(oldest){ const [oy,om]=oldest.split('-').map(Number); canPrev=!(suYear===oy&&suMonth===om)&&!(suYear<oy||(suYear===oy&&suMonth<=om)); }
+    document.getElementById('su-prev-btn').disabled = !canPrev;
+
+  } else {
+    // 週モード
+    const {start, end} = suGetWeekRange();
+    const fmt2 = d=>`${d.getMonth()+1}/${d.getDate()}`;
+    labelText = `${fmt2(start)}〜${fmt2(end)}`;
+    suYear = start.getFullYear(); suMonth = start.getMonth()+1;
+    // 週ごとの breakdown: start〜end に含まれる履歴で集計
+    bd = buildWeekBreakdown(start, end);
+
+    document.getElementById('su-next-btn').disabled = (suWeekOffset >= 0);
+    document.getElementById('su-prev-btn').disabled = false;
+  }
+
+  document.getElementById('su-month-label').textContent = labelText;
+
+  // 収支サマリ
+  const income  = bd.income.total;
+  const expense = bd.fixed.total + bd.free.total + bd.recurringPay.total + bd.carrySpend.total;
+  const net     = income - expense;
+  document.getElementById('su-income').textContent  = `¥${fmt(income)}`;
+  document.getElementById('su-expense').textContent = `¥${fmt(expense)}`;
+  document.getElementById('su-net').textContent     = (net >= 0 ? '+' : '') + `¥${fmt(Math.abs(net))}`;
+  document.getElementById('su-net').style.color = net >= 0 ? '#1a9e6e' : '#e84040';
+
+  // カテゴリリスト
+  const freeBudget = (suPeriod==='month') ? freeMonthlyBudget() : Math.round(freeMonthlyBudget()*7/30);
+  document.getElementById('su-category-list').innerHTML = buildSuCategoryList(bd, freeBudget);
+
+  // CSV ボタンラベル
+  document.getElementById('su-csv-label').textContent =
+    suPeriod==='month' ? `${suYear}年${suMonth}月のCSVを出力` : `${labelText}のCSVを出力`;
+}
+
+// 週単位の breakdown（buildMonthlyBreakdown の週版・簡易）
+function buildWeekBreakdown(start, end){
+  const okoNames   = new Set(wallets.filter(w=>w.group==='okozukai').map(w=>w.name));
+  const carryNames = new Set(wallets.filter(w=>w.group==='carry').map(w=>w.name));
+  const r = {
+    income:{ items:{}, total:0 }, fixed:{ items:{}, total:0 },
+    free:  { items:{}, total:0 }, recurringPay:{ items:{}, total:0 },
+    transferOut:{ items:{}, total:0 }, miscTransfer:{ items:{}, total:0 },
+    carrySpend:{ items:{}, total:0 },
+  };
+  const add = (bucket, key, amt) => { bucket.items[key]=(bucket.items[key]||0)+amt; bucket.total+=amt; };
+  const keyOf = h => {
+    if(h.category) return h.category;
+    if(isTobacco(h.memo)) return 'タバコ代';
+    const fc=(fixedCosts.items||[]).find(it=>h.memo&&it.name&&h.memo.includes(it.name));
+    return fc ? fc.name : (h.memo||'（内容なし）');
+  };
+  history.forEach(h => {
+    if(h.rolledOver) return;
+    const d = new Date(h.year, h.month-1, h.day);
+    if(d < start || d > end) return;
+    if(h.type==='balance_adjust') return;
+    if(h.type==='income'){ add(r.income, h.memo||'収入', h.amount); return; }
+    if(h.type==='transfer'){
+      if(h.transferDir==='in') return;
+      const key=h.transferPeerName||h.toWallet||h.memo||'振替';
+      h.recurringId ? add(r.transferOut,key,h.amount) : add(r.miscTransfer,key,h.amount);
+      return;
+    }
+    if(h.recurringId){ add(r.recurringPay, keyOf(h), h.amount); return; }
+    if(carryNames.has(h.walletName)){ add(r.carrySpend, keyOf(h), h.amount); return; }
+    const k=keyOf(h);
+    (isFixedCategory(k)||isTobacco(h.memo)) ? add(r.fixed,k,h.amount) : add(r.free,k,h.amount);
+  });
+  r.netSpend = r.fixed.total+r.free.total+r.recurringPay.total+r.carrySpend.total;
+  r.balance  = r.income.total - r.netSpend;
+  return r;
+}
+
+// カテゴリリストのHTML生成
+function buildSuCategoryList(bd, freeBudget){
+  let html = '';
+
+  // ① 固定費（おこづかい）
+  const fixedTotal_ = bd.fixed.total;
+  const fixedBudgetTotal = fixedTotal();
+  const fixedOver = fixedTotal_ > fixedBudgetTotal;
+  html += `<div class="su-group-header">
+    <span class="su-group-title">固定費（おこづかい）</span>
+    <span class="su-group-meta">実額 / 予算</span>
+  </div>`;
+  fixedCosts.items.forEach(fi => {
+    const spent = bd.fixed.items[fi.name] || 0;
+    const budget = fi.amount;
+    const pct = budget>0 ? Math.min(100, Math.round(spent/budget*100)) : 0;
+    const over = spent > budget;
+    const meta = suCatMeta(fi.name);
+    html += suItemRow(fi.name, meta, spent, budget, pct, over, 'fixed', '固定費', true);
+  });
+  html += suSubtotalRow(fixedTotal_, fixedBudgetTotal, fixedOver);
+
+  // ② 自由費（おこづかい）
+  const freeTotal_ = bd.free.total;
+  const freeOver = freeTotal_ > freeBudget;
+  html += `<div class="su-group-header">
+    <span class="su-group-title">自由費（おこづかい）</span>
+    <span class="su-group-meta${freeOver?' over':''}">枠 ¥${fmt(freeBudget)}</span>
+  </div>`;
+  // 自由費バー：各費目 = spent / freeBudget（枠合計に対する割合）
+  Object.entries(bd.free.items).sort((a,b)=>b[1]-a[1]).forEach(([name, spent]) => {
+    const pct = freeBudget>0 ? Math.min(100, Math.round(spent/freeBudget*100)) : 0;
+    const meta = suCatMeta(name);
+    html += suItemRow(name, meta, spent, 0, pct, false, 'free', '自由費', true, '#f59e0b');
+  });
+  if(Object.keys(bd.free.items).length===0){
+    html += `<div class="su-item-row" style="color:var(--muted);font-size:13px">この期間の自由費はありません</div>`;
+  }
+  html += suSubtotalRow(freeTotal_, freeBudget, freeOver);
+
+  // ③ 定例の支払い（バーなし・金額のみ）
+  if(bd.recurringPay.total > 0 || Object.keys(bd.recurringPay.items).length > 0){
+    html += `<div class="su-group-header">
+      <span class="su-group-title">定例の支払い</span>
+      <span class="su-group-meta"></span>
+    </div>`;
+    Object.entries(bd.recurringPay.items).sort((a,b)=>b[1]-a[1]).forEach(([name, spent]) => {
+      const meta = suCatMeta(name);
+      html += suItemRowNoBar(name, meta, spent, 'recurring', '定例');
+    });
+    html += suSubtotalRow(bd.recurringPay.total, 0, false);
+  }
+
+  return html;
+}
+
+function suItemRow(name, meta, spent, budget, pct, over, group, groupLabel, drillable, barColor){
+  const barClr = barColor || (over ? '#e84040' : 'var(--accent)');
+  const budgetHtml = budget>0
+    ? `<div class="su-item-budget${over?' over':''}">/ ¥${fmt(budget)}${over?' 超過':''}</div>` : '';
+  const clickAttr = drillable
+    ? `onclick="openDrilldown('${name.replace(/'/g,"\\'")}','${groupLabel}')"` : '';
+  return `<div class="su-item-row" ${clickAttr}>
+    <div class="su-cat-icon" style="background:${meta.color}">${meta.icon}</div>
+    <div class="su-item-info">
+      <div class="su-item-name">${name}</div>
+      <div class="su-item-bar-wrap"><div class="su-item-bar" style="width:${pct}%;background:${barClr}"></div></div>
+    </div>
+    <div class="su-item-right">
+      <div class="su-item-amount">¥${fmt(spent)}</div>
+      ${budgetHtml}
+    </div>
+    ${drillable ? '<span class="su-chevron">›</span>' : ''}
+  </div>`;
+}
+function suItemRowNoBar(name, meta, spent, group, groupLabel){
+  return `<div class="su-item-row" onclick="openDrilldown('${name.replace(/'/g,"\\'")}','${groupLabel}')">
+    <div class="su-cat-icon" style="background:${meta.color}">${meta.icon}</div>
+    <div class="su-item-info"><div class="su-item-name">${name}</div></div>
+    <div class="su-item-right"><div class="su-item-amount">¥${fmt(spent)}</div></div>
+    <span class="su-chevron">›</span>
+  </div>`;
+}
+function suSubtotalRow(total, budget, over){
+  const budgetHtml = budget>0
+    ? `<div class="su-subtotal-budget${over?' over':''}">/ ¥${fmt(budget)}${over?' 超過':''}</div>` : '';
+  return `<div class="su-subtotal-row">
+    <span class="su-subtotal-label">小計</span>
+    <div class="su-subtotal-right">
+      <div class="su-subtotal-amount">¥${fmt(total)}</div>
+      ${budgetHtml}
+    </div>
+  </div>`;
+}
+
+// CSV出力（集計タブ）
+function exportSummaryCsv(){
+  let rows, filename;
+  if(suPeriod==='month'){
+    const tgt = ym(suYear, suMonth);
+    rows = history.filter(h => ym(h.year,h.month)===tgt && h.type!=='balance_adjust');
+    filename = `家計_${suYear}${String(suMonth).padStart(2,'0')}.csv`;
+  } else {
+    const {start,end} = suGetWeekRange();
+    rows = history.filter(h => {
+      const d=new Date(h.year,h.month-1,h.day);
+      return d>=start && d<=end && h.type!=='balance_adjust';
+    });
+    const fmt2=d=>`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+    filename = `家計_${fmt2(start)}_${fmt2(end)}.csv`;
+  }
+  rows.sort((a,b)=>b.ts-a.ts);
+  const header = '日付,種別,口座,カテゴリ,内容,金額';
+  const lines = rows.map(h => {
+    const dateStr=`${h.year}/${String(h.month).padStart(2,'0')}/${String(h.day).padStart(2,'0')}`;
+    const kind = h.type==='income'?'収入':h.type==='transfer'?'振替':'支出';
+    return [dateStr, kind, h.walletName||'', h.category||'', h.memo||'', h.amount].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',');
+  });
+  const csv = '\uFEFF'+header+'\n'+lines.join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download = filename; a.click();
+  showToast('CSVを出力しました');
+}
+
+// ════════════════════════════════
+//  ドリルダウン（F-3）
+// ════════════════════════════════
+let ddCatName='', ddGroupLabel='', ddViewYear, ddViewMonth;
+
+function openDrilldown(catName, groupLabel){
+  ddCatName   = catName;
+  ddGroupLabel = groupLabel;
+  ddViewYear  = suYear;
+  ddViewMonth = suMonth;
+
+  // page-drilldown をアクティブに（タブバーのアクティブは維持）
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-drilldown').classList.add('active');
+
+  renderDrilldown();
+}
+
+function closeDrilldown(){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-summary').classList.add('active');
+}
+
+function renderDrilldown(){
+  const meta = suCatMeta(ddCatName);
+  const BADGE_COLORS = { '固定費':'var(--accent)', '自由費':'#f59e0b', '定例':'#8b5cf6' };
+  document.getElementById('dd-title').textContent = ddCatName;
+  document.getElementById('dd-badge').textContent  = ddGroupLabel;
+  document.getElementById('dd-badge').style.background = BADGE_COLORS[ddGroupLabel]||'#888';
+
+  // ── 月合計＋予算差 ──
+  const budget = (ddGroupLabel==='固定費')
+    ? (fixedCosts.items.find(fi=>fi.name===ddCatName)||{}).amount || 0 : 0;
+  const txThisMonth = catTxInMonth(ddCatName, ddViewYear, ddViewMonth);
+  const total = txThisMonth.reduce((s,h)=>s+h.amount,0);
+  const diff  = budget>0 ? total-budget : null;
+  let diffHtml = '';
+  if(diff!==null){
+    if(diff>0) diffHtml=`<span class="dd-total-diff" style="color:#e84040">¥${fmt(diff)} 超過</span>`;
+    else       diffHtml=`<span class="dd-total-diff" style="color:#1a9e6e">¥${fmt(-diff)} 節約</span>`;
+  }
+  document.getElementById('dd-month-total').innerHTML =
+    `<div>
+      <div class="dd-total-label">${ddViewYear}年${ddViewMonth}月合計</div>
+      <div class="dd-total-amount">¥${fmt(total)}</div>
+    </div>
+    <div style="text-align:right">
+      ${budget>0?`<div class="dd-total-budget">予算 ¥${fmt(budget)}</div>`:''}
+      ${diffHtml}
+    </div>`;
+
+  // ── 棒グラフ（12ヶ月）──
+  const months12 = [];
+  for(let i=11;i>=0;i--){
+    let y=ddViewYear, m=ddViewMonth-i;
+    while(m<1){m+=12;y--;}
+    months12.push({y,m});
+  }
+  const amounts = months12.map(({y,m})=>catTxInMonth(ddCatName,y,m).reduce((s,h)=>s+h.amount,0));
+  const maxAmt  = Math.max(...amounts,1);
+  const avg     = Math.round(amounts.reduce((s,a)=>s+a,0)/12);
+  const colHtml = months12.map(({y,m},i)=>{
+    const a     = amounts[i];
+    const pct   = Math.round(a/maxAmt*100);
+    const isCur = y===ddViewYear && m===ddViewMonth;
+    const isOver = budget>0 && a>budget;
+    const barCls = `dd-chart-bar${isCur?' is-current':''}${isOver?' is-over':''}`;
+    return `<div class="dd-chart-col" onclick="ddSelectMonth(${y},${m})">
+      <div class="dd-chart-bar-wrap"><div class="${barCls}" style="height:${pct||1}%"></div></div>
+      <span class="dd-chart-month${isCur?' is-current':''}">${m}月</span>
+    </div>`;
+  }).join('');
+  document.getElementById('dd-chart-section').innerHTML =
+    `<div class="dd-chart-avg">12ヶ月平均 <strong>¥${fmt(avg)}</strong>　タップで月を切り替え</div>
+    <div class="dd-chart-scroll"><div class="dd-chart-bars">${colHtml}</div></div>`;
+
+  // ── 明細リスト ──
+  renderDrilldownDetail(txThisMonth, meta);
+}
+
+function ddSelectMonth(y,m){
+  ddViewYear=y; ddViewMonth=m;
+  renderDrilldown();
+}
+
+function catTxInMonth(catName, y, m){
+  const target = ym(y,m);
+  return history.filter(h => {
+    if(ym(h.year,h.month)!==target) return false;
+    if(h.type==='transfer'||h.type==='income'||h.type==='balance_adjust') return false;
+    if(h.category) return h.category===catName;
+    if(isTobacco(h.memo)) return catName==='タバコ代';
+    const fc=(fixedCosts.items||[]).find(fi=>h.memo&&fi.name&&h.memo.includes(fi.name));
+    if(fc) return fc.name===catName;
+    // 定例
+    const rc=recurring.find(r=>r.id===h.recurringId);
+    if(rc) return (rc.payee||rc.memo||'')===catName || rc.category===catName;
+    return false;
+  }).sort((a,b)=>b.ts-a.ts);
+}
+
+function renderDrilldownDetail(txList, meta){
+  if(!txList.length){
+    document.getElementById('dd-detail-section').innerHTML =
+      `<div style="padding:24px;text-align:center;color:var(--muted);font-size:13px">この月の明細はありません</div>`;
+    return;
+  }
+  const DAYS = ['日','月','火','水','木','金','土'];
+  let html='', lastDate='';
+  txList.forEach(h=>{
+    const dateKey=`${h.year}-${h.month}-${h.day}`;
+    if(dateKey!==lastDate){
+      const wd=DAYS[new Date(h.year,h.month-1,h.day).getDay()];
+      html+=`<div class="dd-date-header">${h.year}年${h.month}月${h.day}日（${wd}）</div>`;
+      lastDate=dateKey;
+    }
+    html+=`<div class="dd-detail-row">
+      <div class="dd-detail-icon" style="background:${meta.color}">${meta.icon}</div>
+      <div class="dd-detail-info">
+        <div class="dd-detail-memo">${h.memo||'（内容なし）'}</div>
+        <div class="dd-detail-sub">${h.walletName||''}</div>
+      </div>
+      <div class="dd-detail-amount">¥${fmt(h.amount)}</div>
+    </div>`;
+  });
+  document.getElementById('dd-detail-section').innerHTML = html;
+}
 function showBalanceTrend(){
   showToast('残高推移グラフは準備中です（F-7で実装）');
 }
@@ -4063,6 +4604,7 @@ function showPage(id, tab){
   tab.classList.add('active');
   if(id==='settings') renderSettings();
   if(id==='history'){ populateFilterOptions(); renderHistory(); closeCsvPanel(); }
+  if(id==='summary'){ const {y,m}=suNow(); suYear=y; suMonth=m; suPeriod='month'; suWeekOffset=0; suSwitchPeriod('month'); }
   if(id==='report'){
     switchReportTab('weekly');
   }
