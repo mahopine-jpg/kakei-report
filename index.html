@@ -3583,12 +3583,32 @@ function shareWeeklyMail(){
     ? `\n━━━━━━━━━━━━━━━━━━━━\n■ 共有フォルダ（CSV）\n${folder}\n`
     : '';
 
-  const subject = encodeURIComponent(`おこづかい週次レポート（${fmt2(mon)}〜${fmt2(sun)}）`);
+  const subject = encodeURIComponent(`【週次】家計レポート（${fmt2(mon)}〜${fmt2(sun)}）`);
   const body = encodeURIComponent(
-`おこづかい週次レポート ${fmt2(mon)}〜${fmt2(sun)}
+`家計レポート（週次）${fmt2(mon)}〜${fmt2(sun)}
 ━━━━━━━━━━━━━━━━━━━━
 ■ 今週のAIコメント
 ${aiText || '（AIコメントなし）'}
+${folderSection}`);
+  const to = encodeURIComponent(fixedCosts.email || '');
+  window.location.href = `mailto:${to}?subject=${subject}&body=${body}`;
+}
+
+// レポートタブ・月次：確定済み月のAIコメント＋共有フォルダリンクをメール送信
+function shareMonthlyMail(){
+  const summary = getSummary(reportYear, reportMonth);
+  const aiText  = (summary && summary.aiComment) ? summary.aiComment : '（AI評価なし）';
+  const folder  = LS.get(KEY_FOLDER) || '';
+  const folderSection = folder
+    ? `\n━━━━━━━━━━━━━━━━━━━━\n■ 共有フォルダ（CSV）\n${folder}\n`
+    : '';
+
+  const subject = encodeURIComponent(`【月次】家計レポート（${reportYear}年${reportMonth}月）`);
+  const body = encodeURIComponent(
+`家計レポート（月次）${reportYear}年${reportMonth}月
+━━━━━━━━━━━━━━━━━━━━
+■ ${reportMonth}月のAI評価
+${aiText}
 ${folderSection}`);
   const to = encodeURIComponent(fixedCosts.email || '');
   window.location.href = `mailto:${to}?subject=${subject}&body=${body}`;
@@ -4164,6 +4184,7 @@ function renderMonthlyView(){
       aiSec.innerHTML = `<div class="report-section">
         <div class="report-sec-label">AI評価</div>
         <div class="ai-box">${summary.aiComment.replace(/\n/g,'<br>')}</div>
+        <button class="export-btn" onclick="shareMonthlyMail()" style="margin-top:8px">📧 月次メールを送信</button>
       </div>`;
     } else if(closed && summary){
       aiSec.innerHTML = `<div class="report-section">
