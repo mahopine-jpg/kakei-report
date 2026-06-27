@@ -232,7 +232,7 @@ body {
 }
 
 /* ── History ── */
-.history-list { padding: 0 12px; }
+.history-list { padding: 0; }
 .h-item {
   background: var(--surface); border: 1.5px solid var(--border);
   border-radius: 12px; padding: 14px 16px;
@@ -263,6 +263,71 @@ body {
 .h-tag-cat-fixed { background: #f0ebe1; color: #8a6d3b; border-color: #e0d4bd; }
 .h-tag-savings-adj-up { background: #e6f4ec; color: #1a7a4a; }
 .h-amount-in { font-size: 18px; font-weight: 900; color: var(--ok); }
+
+/* ════ F-5 履歴タブ リデザイン ════ */
+.hf-bar { background: var(--surface); border-bottom: 0.5px solid #e8e8e8; padding: 10px 14px; display: flex; gap: 8px; align-items: center; position: relative; }
+.hf-chip { display: flex; align-items: center; gap: 4px; padding: 6px 12px; border: 0.5px solid var(--border); border-radius: 20px; font-size: 12px; font-weight: 700; color: var(--muted); background: var(--surface); cursor: pointer; white-space: nowrap; font-family: var(--sans); }
+.hf-chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.hf-chip .hf-arrow { font-size: 10px; }
+.hf-csv { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; background: none; border: 1.5px solid var(--border); border-radius: 8px; padding: 6px 11px; font-size: 12px; font-weight: 700; color: var(--muted); cursor: pointer; white-space: nowrap; font-family: var(--sans); }
+.hf-csv:active { border-color: var(--text); color: var(--text); }
+.hf-reset { font-size: 12px; color: var(--accent); font-weight: 700; cursor: pointer; white-space: nowrap; padding: 6px 4px; }
+.hf-dropdown { position: absolute; top: 50px; left: 14px; right: 14px; background: var(--surface); border: 0.5px solid #e8e8e8; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.14); z-index: 120; overflow: hidden; max-height: 60vh; overflow-y: auto; display: none; }
+.hf-dropdown.open { display: block; }
+.hf-item { padding: 13px 16px; font-size: 14px; font-weight: 500; color: var(--text); border-bottom: 0.5px solid #f0f0f0; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+.hf-item:last-child { border-bottom: none; }
+.hf-item:active { background: #f8f8f8; }
+.hf-item .hf-check { color: var(--accent); font-weight: 900; visibility: hidden; }
+.hf-item.selected .hf-check { visibility: visible; }
+/* 明細リスト */
+.hr-date-header { padding: 7px 16px; font-size: 12px; font-weight: 700; color: var(--muted); background: #f0f0f0; border-bottom: 0.5px solid #e8e8e8; border-top: 0.5px solid #e8e8e8; }
+.hr-row { display: flex; align-items: center; padding: 11px 16px; border-bottom: 0.5px solid #f0f0f0; background: var(--surface); gap: 12px; cursor: pointer; }
+.hr-row:active { background: #f8f8f8; }
+.hr-icon { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 18px; }
+.hr-icon.expense { background: #fff0f0; }
+.hr-icon.income { background: #f0f5ff; }
+.hr-icon.transfer { background: #f0f0f0; }
+.hr-icon.savings { background: #e1f0e8; }
+.hr-info { flex: 1; min-width: 0; }
+.hr-memo { font-size: 14px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hr-sub { font-size: 11px; color: #aaa; margin-top: 2px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.hr-cat { background: #f0f0f0; border-radius: 4px; padding: 1px 6px; font-size: 10px; color: #888; }
+.hr-cat.fixed { background: #f0ebe1; color: #8a6d3b; }
+.hr-amount { font-size: 15px; font-weight: 700; flex-shrink: 0; text-align: right; white-space: nowrap; }
+.hr-amount.expense { color: var(--text); }
+.hr-amount.income { color: var(--accent); }
+.hr-amount.transfer { color: #aaa; font-size: 13px; }
+.hr-amount.savings-in { color: var(--ok); }
+.hr-date-total { display: flex; justify-content: flex-end; padding: 5px 16px; background: #fafafa; border-bottom: 0.5px solid #e8e8e8; font-size: 12px; color: #888; gap: 14px; }
+.hr-date-total b { font-weight: 700; color: var(--text); }
+.hr-date-total b.income { color: var(--accent); }
+/* CSV年/月パネル */
+.hf-csv-panel { background: var(--surface); border: 1.5px solid var(--border2); border-radius: 12px; padding: 16px; margin: 0 14px 12px; box-shadow: 0 4px 14px rgba(0,0,0,.1); display: none; }
+.hf-csv-panel.open { display: block; }
+/* 詳細モーダル */
+.hd-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 300; display: none; align-items: center; justify-content: center; padding: 24px; }
+.hd-overlay.open { display: flex; }
+.hd-modal { background: var(--surface); border-radius: 16px; width: 100%; max-width: 340px; overflow: hidden; box-shadow: 0 8px 30px rgba(0,0,0,0.25); }
+.hd-head { padding: 18px 20px 14px; border-bottom: 0.5px solid #e8e8e8; display: flex; align-items: center; gap: 12px; }
+.hd-head-icon { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+.hd-head-icon.expense { background: #fff0f0; }
+.hd-head-icon.income { background: #f0f5ff; }
+.hd-head-icon.transfer { background: #f0f0f0; }
+.hd-head-icon.savings { background: #e1f0e8; }
+.hd-head-icon.savings-in { background: #e1f0e8; }
+.hd-head-title { font-size: 16px; font-weight: 900; color: var(--text); }
+.hd-head-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.hd-body { padding: 8px 20px; }
+.hd-field { display: flex; justify-content: space-between; align-items: center; padding: 11px 0; border-bottom: 0.5px solid #f0f0f0; font-size: 14px; }
+.hd-field:last-child { border-bottom: none; }
+.hd-field-label { color: var(--muted); font-weight: 700; }
+.hd-field-value { color: var(--text); font-weight: 700; text-align: right; }
+.hd-actions { padding: 14px 20px 18px; display: flex; gap: 10px; }
+.hd-btn { flex: 1; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: var(--sans); border: 1.5px solid var(--border); background: var(--surface); color: var(--text); }
+.hd-btn.edit:active { border-color: var(--accent); color: var(--accent); }
+.hd-btn.del { border-color: var(--danger); color: var(--danger); }
+.hd-btn.del:active { background: var(--danger-bg); }
+.hd-btn.close { color: var(--muted); }
 
 /* ── Panel tabs ── */
 .panel-tab-row {
@@ -763,15 +828,41 @@ body {
 </div>
 
 <!-- ════ HISTORY ════ -->
-<div class="page" id="page-history">
-  <div class="hist-head" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding:0 2px">
-    <div class="sec-label" style="padding:0">記帳履歴</div>
-    <div class="csv-chip" id="csv-chip" onclick="toggleCsvPanel()" style="display:inline-flex;align-items:center;gap:6px;background:var(--bg2);border:1.5px solid var(--border);border-radius:9px;padding:8px 12px;font-size:13px;font-weight:700;color:var(--text);cursor:pointer">
-      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+<div class="page" id="page-history" style="padding:0">
+  <!-- フィルターバー -->
+  <div class="hf-bar">
+    <div class="hf-chip" id="hf-chip-account" onclick="hfToggleDropdown('account')">口座 <span class="hf-arrow">▾</span></div>
+    <div class="hf-chip" id="hf-chip-date" onclick="hfToggleDropdown('date')">日付 <span class="hf-arrow">▾</span></div>
+    <div class="hf-chip" id="hf-chip-category" onclick="hfToggleDropdown('category')">カテゴリ <span class="hf-arrow">▾</span></div>
+    <div class="hf-reset" id="hf-reset" style="display:none" onclick="hfResetFilters()">リセット</div>
+    <button class="hf-csv" onclick="hfToggleCsvPanel()">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
       CSV
+    </button>
+
+    <!-- 口座ドロップダウン -->
+    <div class="hf-dropdown" id="hf-dropdown-account"></div>
+    <!-- カテゴリドロップダウン -->
+    <div class="hf-dropdown" id="hf-dropdown-category"></div>
+    <!-- 日付ピッカー -->
+    <div class="hf-dropdown" id="hf-dropdown-date" style="padding:12px 16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <button onclick="hfChangeCalMonth(-1)" style="background:none;border:none;font-size:18px;color:var(--accent);cursor:pointer;padding:2px 8px;font-family:var(--sans)">＜</button>
+        <span id="hf-cal-label" style="font-size:14px;font-weight:700;color:var(--text)"></span>
+        <button onclick="hfChangeCalMonth(1)" style="background:none;border:none;font-size:18px;color:var(--accent);cursor:pointer;padding:2px 8px;font-family:var(--sans)">＞</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;margin-bottom:6px">
+        <div style="font-size:11px;color:#aaa;padding:2px">日</div><div style="font-size:11px;color:#aaa;padding:2px">月</div><div style="font-size:11px;color:#aaa;padding:2px">火</div><div style="font-size:11px;color:#aaa;padding:2px">水</div><div style="font-size:11px;color:#aaa;padding:2px">木</div><div style="font-size:11px;color:#aaa;padding:2px">金</div><div style="font-size:11px;color:#aaa;padding:2px">土</div>
+      </div>
+      <div id="hf-cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center"></div>
+      <div style="margin-top:10px;text-align:center">
+        <button onclick="hfClearDate()" style="font-size:12px;color:var(--muted);background:none;border:none;cursor:pointer;font-family:var(--sans)">クリア</button>
+      </div>
     </div>
   </div>
-  <div class="csv-panel" id="csv-panel" style="display:none;background:var(--surface);border:1.5px solid var(--border2);border-radius:12px;padding:16px;margin-bottom:14px;box-shadow:0 4px 14px rgba(0,0,0,.1)">
+
+  <!-- CSV年/月パネル -->
+  <div class="hf-csv-panel" id="hf-csv-panel">
     <div style="font-size:14px;font-weight:900;margin-bottom:12px">明細をCSVで出力</div>
     <div style="display:flex;gap:10px;margin-bottom:12px">
       <div style="flex:1">
@@ -792,28 +883,23 @@ body {
     <button class="report-btn" onclick="exportHistoryCSV()" style="padding:14px;font-size:16px">出力する</button>
     <div class="hint" style="font-size:12px;color:var(--muted);font-weight:500;line-height:1.6;margin-top:8px">月を「指定なし」にすると、その年（1〜12月）をまとめて出力します。2年より前は選べません。</div>
   </div>
-  <div class="filter-bar">
-    <button class="filter-toggle" id="filter-toggle" onclick="toggleFilterPanel()">
-      <span>絞り込み<span class="filter-badge" id="filter-badge" style="display:none">0</span></span>
-      <span class="ft-arrow">▼</span>
-    </button>
-    <div class="filter-panel" id="filter-panel">
-      <div class="filter-field">
-        <div class="filter-label">月</div>
-        <select class="filter-input" id="filter-month" onchange="renderHistory()"></select>
-      </div>
-      <div class="filter-field">
-        <div class="filter-label">口座</div>
-        <select class="filter-input" id="filter-wallet" onchange="renderHistory()"></select>
-      </div>
-      <div class="filter-field">
-        <div class="filter-label">メモ検索</div>
-        <input type="text" class="filter-input" id="filter-memo" placeholder="キーワード" oninput="renderHistory()">
-      </div>
-      <button class="filter-clear" onclick="clearFilters()">条件をクリア</button>
-    </div>
-  </div>
+
   <div class="history-list" id="history-list"></div>
+</div>
+
+<!-- 履歴・明細詳細モーダル -->
+<div class="hd-overlay" id="hd-overlay" onclick="if(event.target===this)hdCloseDetail()">
+  <div class="hd-modal">
+    <div class="hd-head">
+      <div class="hd-head-icon" id="hd-icon"></div>
+      <div>
+        <div class="hd-head-title" id="hd-title"></div>
+        <div class="hd-head-sub" id="hd-sub"></div>
+      </div>
+    </div>
+    <div class="hd-body" id="hd-body"></div>
+    <div class="hd-actions" id="hd-actions"></div>
+  </div>
 </div>
 
 <!-- ════ REPORT ════ -->
@@ -1681,161 +1767,348 @@ function applyWalletDefault(tab){
 // ════════════════════════════════
 //  Render History
 // ════════════════════════════════
-function toggleFilterPanel(){
-  document.getElementById('filter-panel').classList.toggle('open');
-  document.getElementById('filter-toggle').classList.toggle('open');
-}
-function populateFilterOptions(){
-  // 月の選択肢（履歴に存在する年月を新しい順で）
-  const monthSel = document.getElementById('filter-month');
-  const walletSel = document.getElementById('filter-wallet');
-  if(!monthSel || !walletSel) return;
-  const prevM = monthSel.value, prevW = walletSel.value;
+// ──────────────────────────────────────
+//  F-5 履歴タブ：フィルター状態・補助
+// ──────────────────────────────────────
+let histFilter = { account:'all', date:null, category:'all' };
+let hfCalYear, hfCalMonth;
 
-  const months = [...new Set(history.map(h => ym(h.year,h.month)))].sort().reverse();
-  monthSel.innerHTML = '<option value="">すべての月</option>' +
-    months.map(m => {
-      const [y,mo] = m.split('-');
-      return `<option value="${m}">${y}年${Number(mo)}月</option>`;
-    }).join('');
-  monthSel.value = months.includes(prevM) ? prevM : '';
+// カテゴリ → 絵文字（フィルター項目・行アイコン用）。未定義は内訳に応じてフォールバック。
+const CAT_EMOJI = {
+  'ガソリン代':'⛽','タバコ代':'🚬','定期代':'🚃','医療費':'🩺',
+  '食費':'🍽','日用品':'🛒','趣味・娯楽':'🎮','交際費':'👥','雑費':'📦',
+  '司法書士返済':'📄','借金返済(親へ)':'💴','家賃(親へ)':'🏠',
+};
+function catEmoji(cat){ return CAT_EMOJI[cat] || (cat && isFixedCategory(cat) ? '📌' : '💸'); }
 
-  const names = [...new Set(history.map(h => h.walletName).filter(Boolean))];
-  walletSel.innerHTML = '<option value="">すべての口座</option>' +
-    names.map(n => `<option value="${n}">${n}</option>`).join('');
-  walletSel.value = names.includes(prevW) ? prevW : '';
-}
-function updateFilterBadge(fMonth, fWallet, fMemo){
-  const count = [fMonth, fWallet, fMemo].filter(Boolean).length;
-  const badge = document.getElementById('filter-badge');
-  const toggle = document.getElementById('filter-toggle');
-  if(!badge) return;
-  if(count){
-    badge.textContent = count;
-    badge.style.display = 'inline-block';
-    toggle.classList.add('active');
-  } else {
-    badge.style.display = 'none';
-    toggle.classList.remove('active');
+// 旧呼び出し互換（他所から populateFilterOptions / clearFilters が呼ばれても安全に）
+function populateFilterOptions(){ /* F-5でドロップダウン化。renderHistory内で構築 */ }
+function clearFilters(){ hfResetFilters(); }
+function toggleFilterPanel(){ /* 旧フィルターパネル廃止 */ }
+
+// ドロップダウン中身の構築
+function hfBuildDropdowns(){
+  // 口座
+  const accDd = document.getElementById('hf-dropdown-account');
+  if(accDd){
+    const names = wallets.map(w=>w.name);
+    let html = hfDdItem('account','all','すべての口座');
+    names.forEach(n => { html += hfDdItem('account', n, n); });
+    accDd.innerHTML = html;
+  }
+  // カテゴリ（allCategories を動的生成）
+  const catDd = document.getElementById('hf-dropdown-category');
+  if(catDd){
+    let html = hfDdItem('category','all','すべてのカテゴリ');
+    allCategories().forEach(c => {
+      html += hfDdItem('category', c, `${catEmoji(c)} ${c}`);
+    });
+    catDd.innerHTML = html;
   }
 }
-function clearFilters(){
-  const m = document.getElementById('filter-month');
-  const w = document.getElementById('filter-wallet');
-  const me = document.getElementById('filter-memo');
-  if(m) m.value = '';
-  if(w) w.value = '';
-  if(me) me.value = '';
+function hfDdItem(type, value, label){
+  const sel = (histFilter[type] === value) ? ' selected' : '';
+  const v = String(value).replace(/'/g,"\\'");
+  return `<div class="hf-item${sel}" onclick="hfSelect('${type}','${v}')">${label} <span class="hf-check">✓</span></div>`;
+}
+
+function hfToggleDropdown(type){
+  hfCloseCsvPanel();
+  ['account','date','category'].forEach(t=>{
+    const d = document.getElementById('hf-dropdown-'+t);
+    if(!d) return;
+    if(t===type) d.classList.toggle('open');
+    else d.classList.remove('open');
+  });
+  if(type==='date' && document.getElementById('hf-dropdown-date').classList.contains('open')){
+    hfRenderCalendar();
+  }
+}
+
+function hfSelect(type, value){
+  histFilter[type] = (value==='all') ? 'all' : value;
+  document.getElementById('hf-dropdown-'+type).classList.remove('open');
   renderHistory();
 }
+
+function hfResetFilters(){
+  histFilter = { account:'all', date:null, category:'all' };
+  document.querySelectorAll('.hf-dropdown').forEach(d=>d.classList.remove('open'));
+  renderHistory();
+}
+
+// カレンダー
+function hfRenderCalendar(){
+  if(hfCalYear===undefined){ const d=now(); hfCalYear=d.getFullYear(); hfCalMonth=d.getMonth()+1; }
+  const label = document.getElementById('hf-cal-label');
+  if(label) label.textContent = `${hfCalYear}年${hfCalMonth}月`;
+  const grid = document.getElementById('hf-cal-grid');
+  if(!grid) return;
+  const firstDay = new Date(hfCalYear, hfCalMonth-1, 1).getDay();
+  const days = new Date(hfCalYear, hfCalMonth, 0).getDate();
+  const td = now();
+  let html = '';
+  for(let i=0;i<firstDay;i++) html += '<div></div>';
+  for(let dd=1;dd<=days;dd++){
+    const sel = histFilter.date && histFilter.date.year===hfCalYear && histFilter.date.month===hfCalMonth && histFilter.date.day===dd;
+    const isToday = td.getFullYear()===hfCalYear && td.getMonth()+1===hfCalMonth && td.getDate()===dd;
+    const bg = sel ? 'background:var(--accent);color:#fff;' : (isToday ? 'color:var(--accent);font-weight:900;' : '');
+    html += `<div onclick="hfPickDate(${dd})" style="padding:6px 2px;font-size:13px;font-weight:500;cursor:pointer;border-radius:6px;${bg}">${dd}</div>`;
+  }
+  grid.innerHTML = html;
+}
+function hfChangeCalMonth(dir){
+  hfCalMonth += dir;
+  if(hfCalMonth>12){ hfCalMonth=1; hfCalYear++; }
+  if(hfCalMonth<1){ hfCalMonth=12; hfCalYear--; }
+  hfRenderCalendar();
+}
+function hfPickDate(dd){
+  histFilter.date = { year:hfCalYear, month:hfCalMonth, day:dd };
+  document.getElementById('hf-dropdown-date').classList.remove('open');
+  renderHistory();
+}
+function hfClearDate(){
+  histFilter.date = null;
+  document.getElementById('hf-dropdown-date').classList.remove('open');
+  renderHistory();
+}
+
+// チップの見た目更新
+function hfUpdateChips(){
+  // 口座
+  const ca = document.getElementById('hf-chip-account');
+  if(ca){
+    if(histFilter.account==='all'){ ca.innerHTML='口座 <span class="hf-arrow">▾</span>'; ca.classList.remove('active'); }
+    else { ca.innerHTML=`${histFilter.account} <span class="hf-arrow">▾</span>`; ca.classList.add('active'); }
+  }
+  // 日付
+  const cd = document.getElementById('hf-chip-date');
+  if(cd){
+    if(!histFilter.date){ cd.innerHTML='日付 <span class="hf-arrow">▾</span>'; cd.classList.remove('active'); }
+    else { cd.innerHTML=`${histFilter.date.month}/${histFilter.date.day} <span class="hf-arrow">▾</span>`; cd.classList.add('active'); }
+  }
+  // カテゴリ
+  const cc = document.getElementById('hf-chip-category');
+  if(cc){
+    if(histFilter.category==='all'){ cc.innerHTML='カテゴリ <span class="hf-arrow">▾</span>'; cc.classList.remove('active'); }
+    else { cc.innerHTML=`${catEmoji(histFilter.category)} ${histFilter.category} <span class="hf-arrow">▾</span>`; cc.classList.add('active'); }
+  }
+  const anyActive = histFilter.account!=='all' || histFilter.date || histFilter.category!=='all';
+  const reset = document.getElementById('hf-reset');
+  if(reset) reset.style.display = anyActive ? 'block' : 'none';
+}
+
+// ════════════════════════════════
+//  Render History（F-5 マネフォ風）
+// ════════════════════════════════
 function renderHistory(){
   const c = document.getElementById('history-list');
+  if(!c) return;
+  hfBuildDropdowns();
+  hfUpdateChips();
   c.innerHTML = '';
   if(!history.length){
-    c.innerHTML = '<div class="empty-msg">記帳はまだありません</div>';
+    c.innerHTML = '<div class="empty-msg" style="padding:40px 16px;text-align:center;color:var(--muted)">記帳はまだありません</div>';
     return;
   }
 
-  // フィルター条件
-  const fMonth  = (document.getElementById('filter-month')||{}).value  || '';
-  const fWallet = (document.getElementById('filter-wallet')||{}).value || '';
-  const fMemo   = ((document.getElementById('filter-memo')||{}).value  || '').trim().toLowerCase();
-  updateFilterBadge(fMonth, fWallet, fMemo);
-
-  let list = history.filter(h => {
-    if(fMonth && ym(h.year,h.month) !== fMonth) return false;
-    if(fWallet && h.walletName !== fWallet) return false;
-    if(fMemo){
-      const text = ((h.memo||'') + ' ' + (h.walletName||'')).toLowerCase();
-      if(!text.includes(fMemo)) return false;
+  // フィルター適用
+  let list = history.filter(h=>{
+    if(histFilter.account!=='all' && h.walletName!==histFilter.account) return false;
+    if(histFilter.date){
+      const d=histFilter.date;
+      if(h.year!==d.year || h.month!==d.month || h.day!==d.day) return false;
+    }
+    if(histFilter.category!=='all'){
+      // 通常支出のカテゴリで判定。タバコはメモ照合も許容（旧データ救済）。
+      const cat = h.category || (isTobacco(h.memo) ? 'タバコ代' : '');
+      if(cat !== histFilter.category) return false;
     }
     return true;
   });
 
   if(!list.length){
-    c.innerHTML = '<div class="empty-msg">該当する記帳がありません</div>';
+    c.innerHTML = '<div class="empty-msg" style="padding:40px 16px;text-align:center;color:var(--muted)">該当する記帳がありません</div>';
     return;
   }
 
+  // 並び替え（新しい日付順）
   const sorted = [...list].sort((a,b)=>{
-    const da = new Date(a.year, a.month-1, a.day);
-    const db = new Date(b.year, b.month-1, b.day);
-    return db - da || b.ts - a.ts;
+    const da=new Date(a.year,a.month-1,a.day), db=new Date(b.year,b.month-1,b.day);
+    return db-da || (b.ts||0)-(a.ts||0);
   });
-  sorted.forEach(h => {
-    const d = document.createElement('div');
-    d.className = 'h-item';
-    const dateStr = `${String(h.month).padStart(2,'0')}/${String(h.day).padStart(2,'0')}`;
-    const isTransfer    = h.type === 'transfer';
-    const isIncome      = h.type === 'income';
-    const isSavingsW    = h.type === 'savings_withdraw';
-    const isSavingsAdj  = h.type === 'savings_adjust';
-    const isBalAdj      = h.type === 'balance_adjust';
-    const isIn = isTransfer && h.transferDir === 'in';
-    let tagLabel, tagClass, amountHtml, delBtn;
-    if(isTransfer){
-      tagLabel = isIn ? `移動 ← ${h.transferPeerName}` : `移動 → ${h.transferPeerName}`;
-      tagClass = 'h-tag h-tag-transfer';
-      amountHtml = isIn
-        ? `<div class="h-amount-in">+¥${fmt(h.amount)}</div>`
-        : `<div class="h-amount">−¥${fmt(h.amount)}</div>`;
-      delBtn = isIn ? '' : `<button class="h-del" onclick="deleteTransfer('${h.id}',event)" title="削除">×</button>`;
-    } else if(isIncome){
-      tagLabel = `💰 収入 → ${h.walletName}`;
-      tagClass = 'h-tag h-tag-income';
-      amountHtml = `<div class="h-amount-in">+¥${fmt(h.amount)}</div>`;
-      delBtn = `<button class="h-del" onclick="editIncome('${h.id}',event)" title="編集">✎</button>
-                <button class="h-del" onclick="deleteIncome('${h.id}',event)" title="削除">×</button>`;
-    } else if(isSavingsW){
-      tagLabel = '🏦 貯金引き出し';
-      tagClass = 'h-tag' + (h.wishItemId ? ' h-tag-savings-buy' : ' h-tag-savings');
-      amountHtml = `<div class="h-amount">−¥${fmt(h.amount)}</div>`;
-      delBtn = `<button class="h-del" onclick="deleteSavingsTx('${h.id}',${h.amount},event)" title="削除">×</button>`;
-    } else if(isSavingsAdj){
-      const isIncrease = h.diff > 0;
-      tagLabel = isIncrease ? '🏦 残高調整（増）' : '🏦 使途不明金';
-      tagClass = 'h-tag h-tag-savings' + (isIncrease ? '-adj-up' : '');
-      amountHtml = isIncrease
-        ? `<div class="h-amount-in">+¥${fmt(h.amount)}</div>`
-        : `<div class="h-amount">−¥${fmt(h.amount)}</div>`;
-      delBtn = '';
-    } else if(isBalAdj){
-      const isIncrease = h.diff > 0;
-      tagLabel = (isIncrease ? '✏️ 残高調整（増）' : '✏️ 残高調整（減）') + ` ${h.walletName}`;
-      tagClass = 'h-tag h-tag-savings' + (isIncrease ? '-adj-up' : '');
-      amountHtml = isIncrease
-        ? `<div class="h-amount-in">+¥${fmt(h.amount)}</div>`
-        : `<div class="h-amount">−¥${fmt(h.amount)}</div>`;
-      delBtn = `<button class="h-del" onclick="deleteBalAdj('${h.id}',event)" title="削除">×</button>`;
-    } else if(h.wishItemId){
-      // ほしいもの購入（自由貯金口座からの通常支出）。編集は紐付けを壊すため不可、削除のみ。
-      tagLabel = '🛍 ほしいもの購入 ← ' + (h.walletName || WISH_WALLET);
-      tagClass = 'h-tag h-tag-savings-buy';
-      amountHtml = `<div class="h-amount">−¥${fmt(h.amount)}</div>`;
-      delBtn = `<button class="h-del" onclick="deleteWishBuyTx('${h.id}',event)" title="削除">×</button>`;
-    } else {
-      tagLabel = h.walletName;
-      tagClass = 'h-tag';
-      amountHtml = `<div class="h-amount">−¥${fmt(h.amount)}</div>`;
-      delBtn = `<button class="h-del" onclick="editTx('${h.id}',event)" title="編集">✎</button>
-                <button class="h-del" onclick="deleteTx('${h.id}',event)" title="削除">×</button>`;
+
+  // 振替の「in」側は出力スキップ（out側で1行集約）。ただし孤立inは表示。
+  const pairIds = new Set(sorted.filter(h=>h.type==='transfer'&&h.transferDir==='out'&&h.transferPairId).map(h=>h.transferPairId));
+  const display = sorted.filter(h=>{
+    if(h.type==='transfer' && h.transferDir==='in' && h.transferPairId && pairIds.has(h.transferPairId)) return false;
+    return true;
+  });
+
+  // 日付ごとにグループ化
+  const WD=['日','月','火','水','木','金','土'];
+  let curKey=null, dayInc=0, dayExp=0, totalRow=null;
+  const flush=()=>{
+    if(totalRow){
+      let parts=[];
+      if(dayInc>0) parts.push(`収入 <b class="income">¥${fmt(dayInc)}</b>`);
+      if(dayExp>0) parts.push(`支出 <b>¥${fmt(dayExp)}</b>`);
+      totalRow.innerHTML = parts.join('　') || '<b>—</b>';
     }
-    const catTag = (!isTransfer && !isIncome && !isSavingsW && !isSavingsAdj && !isBalAdj && !h.wishItemId && h.category)
-      ? `<span class="h-tag h-tag-cat${isFixedCategory(h.category)?' h-tag-cat-fixed':''}">${h.category}</span>` : '';
-    d.innerHTML = `
-      <div class="h-left">
-        <span class="${tagClass}">${tagLabel}</span>${catTag}
-        <div class="h-memo">${h.memo||h.walletName}</div>
+    dayInc=0; dayExp=0; totalRow=null;
+  };
+
+  display.forEach(h=>{
+    const key = `${h.year}-${h.month}-${h.day}`;
+    if(key!==curKey){
+      flush();
+      curKey=key;
+      const wd = WD[new Date(h.year,h.month-1,h.day).getDay()];
+      const dh=document.createElement('div');
+      dh.className='hr-date-header';
+      dh.textContent=`${h.year}年${h.month}月${h.day}日（${wd}）`;
+      c.appendChild(dh);
+    }
+
+    // 行の見た目を種別で決定
+    const v = hfRowView(h);
+    if(v.incAmt) dayInc += v.incAmt;
+    if(v.expAmt) dayExp += v.expAmt;
+
+    const row=document.createElement('div');
+    row.className='hr-row';
+    row.onclick=()=>hdOpenDetail(h.id);
+    const catBadge = v.cat
+      ? `<span class="hr-cat${isFixedCategory(v.cat)?' fixed':''}">${v.cat}</span>` : '';
+    row.innerHTML = `
+      <div class="hr-icon ${v.iconClass}">${v.icon}</div>
+      <div class="hr-info">
+        <div class="hr-memo">${v.memo}</div>
+        <div class="hr-sub"><span>${v.sub}</span>${catBadge}</div>
       </div>
-      <div class="h-right">
-        ${amountHtml}
-        <div style="display:flex;align-items:center;gap:6px">
-          <div class="h-date">${h.year}/${dateStr}</div>
-          ${delBtn}
-        </div>
-      </div>`;
-    c.appendChild(d);
+      <div class="hr-amount ${v.amtClass}">${v.amtHtml}</div>`;
+    c.appendChild(row);
+
+    // 同日小計プレースホルダ（毎回末尾に作り直す）
+    if(totalRow) totalRow.remove();
+    totalRow=document.createElement('div');
+    totalRow.className='hr-date-total';
+    c.appendChild(totalRow);
   });
+  flush();
+}
+
+// 1レコードの表示要素を種別から組み立て
+function hfRowView(h){
+  const isTransfer=h.type==='transfer', isIncome=h.type==='income';
+  const isSavingsW=h.type==='savings_withdraw', isSavingsAdj=h.type==='savings_adjust';
+  const isBalAdj=h.type==='balance_adjust';
+  if(isTransfer){
+    if(h.transferDir==='in'){
+      // 孤立in（ペアout無し）。受取として表示。
+      return { icon:'↔', iconClass:'transfer', memo:h.memo||'振替（受取）',
+        sub:`${h.transferPeerName||'?'} → ${h.walletName}`, cat:'', amtClass:'transfer', amtHtml:'振替', incAmt:0, expAmt:0 };
+    }
+    return { icon:'↔', iconClass:'transfer', memo:h.memo||'振替',
+      sub:`${h.walletName} → ${h.transferPeerName||'?'}`, cat:'', amtClass:'transfer', amtHtml:'振替', incAmt:0, expAmt:0 };
+  }
+  if(isIncome){
+    return { icon:'💰', iconClass:'income', memo:h.memo||'収入', sub:h.walletName, cat:'',
+      amtClass:'income', amtHtml:`+¥${fmt(h.amount)}`, incAmt:h.amount, expAmt:0 };
+  }
+  if(isSavingsW){
+    return { icon:'🏦', iconClass:'savings', memo:h.memo||(h.wishItemId?'ほしいもの購入':'貯金引き出し'),
+      sub:'貯金口座', cat:'', amtClass:'expense', amtHtml:`−¥${fmt(h.amount)}`, incAmt:0, expAmt:h.amount };
+  }
+  if(isSavingsAdj){
+    const inc=h.diff>0;
+    return { icon:'🏦', iconClass:'savings', memo:h.memo||(inc?'残高調整（増）':'使途不明金'),
+      sub:'貯金口座', cat:'', amtClass:inc?'savings-in':'expense',
+      amtHtml:inc?`+¥${fmt(h.amount)}`:`−¥${fmt(h.amount)}`, incAmt:inc?h.amount:0, expAmt:inc?0:h.amount };
+  }
+  if(isBalAdj){
+    const inc=h.diff>0;
+    return { icon:'✏️', iconClass:inc?'savings':'expense', memo:h.memo||(inc?'残高調整（増）':'残高調整（減）'),
+      sub:h.walletName, cat:'', amtClass:inc?'savings-in':'expense',
+      amtHtml:inc?`+¥${fmt(h.amount)}`:`−¥${fmt(h.amount)}`, incAmt:inc?h.amount:0, expAmt:inc?0:h.amount };
+  }
+  if(h.wishItemId){
+    return { icon:'🛍', iconClass:'savings', memo:h.memo||'ほしいもの購入', sub:h.walletName||WISH_WALLET,
+      cat:'', amtClass:'expense', amtHtml:`−¥${fmt(h.amount)}`, incAmt:0, expAmt:h.amount };
+  }
+  // 通常支出
+  const cat = h.category || '';
+  return { icon:catEmoji(cat), iconClass:'expense', memo:h.memo||h.walletName, sub:h.walletName,
+    cat:cat, amtClass:'expense', amtHtml:`−¥${fmt(h.amount)}`, incAmt:0, expAmt:h.amount };
+}
+
+// ──────────────────────────────────────
+//  履歴・明細詳細モーダル
+// ──────────────────────────────────────
+function hdOpenDetail(id){
+  const h = history.find(x=>x.id===id);
+  if(!h) return;
+  const v = hfRowView(h);
+  document.getElementById('hd-icon').className = 'hd-head-icon '+v.iconClass;
+  document.getElementById('hd-icon').textContent = v.icon;
+  document.getElementById('hd-title').textContent = v.memo;
+  document.getElementById('hd-sub').textContent = `${h.year}年${h.month}月${h.day}日`;
+
+  // 種別ラベル
+  let kindLabel='支出';
+  if(h.type==='income') kindLabel='収入';
+  else if(h.type==='transfer') kindLabel='振替';
+  else if(h.type==='savings_withdraw') kindLabel=h.wishItemId?'ほしいもの購入':'貯金引き出し';
+  else if(h.type==='savings_adjust') kindLabel=h.diff>0?'残高調整（増）':'使途不明金';
+  else if(h.type==='balance_adjust') kindLabel=h.diff>0?'残高調整（増）':'残高調整（減）';
+  else if(h.wishItemId) kindLabel='ほしいもの購入';
+
+  let fields = `<div class="hd-field"><span class="hd-field-label">種別</span><span class="hd-field-value">${kindLabel}</span></div>`;
+  fields += `<div class="hd-field"><span class="hd-field-label">金額</span><span class="hd-field-value">${v.amtHtml.replace('振替','—')}</span></div>`;
+  if(h.type==='transfer'){
+    fields += `<div class="hd-field"><span class="hd-field-label">移動元</span><span class="hd-field-value">${h.transferDir==='in'?(h.transferPeerName||'?'):h.walletName}</span></div>`;
+    fields += `<div class="hd-field"><span class="hd-field-label">移動先</span><span class="hd-field-value">${h.transferDir==='in'?h.walletName:(h.transferPeerName||'?')}</span></div>`;
+  } else {
+    fields += `<div class="hd-field"><span class="hd-field-label">口座</span><span class="hd-field-value">${h.walletName||'—'}</span></div>`;
+  }
+  if(v.cat) fields += `<div class="hd-field"><span class="hd-field-label">カテゴリ</span><span class="hd-field-value">${v.cat}</span></div>`;
+  if(h.recurringId) fields += `<div class="hd-field"><span class="hd-field-label">定例</span><span class="hd-field-value">✓ 定例項目</span></div>`;
+  document.getElementById('hd-body').innerHTML = fields;
+
+  // 操作ボタン（種別ごとの可否は現行ロジック踏襲）
+  const actions = document.getElementById('hd-actions');
+  let btns = '';
+  const isTransfer=h.type==='transfer', isIncome=h.type==='income';
+  const isSavingsW=h.type==='savings_withdraw', isSavingsAdj=h.type==='savings_adjust';
+  const isBalAdj=h.type==='balance_adjust';
+  // 編集可：通常支出・収入のみ
+  if(isIncome){
+    btns += `<button class="hd-btn edit" onclick="hdCloseDetail();editIncome('${h.id}',{stopPropagation(){}})">編集</button>`;
+    btns += `<button class="hd-btn del" onclick="hdCloseDetail();deleteIncome('${h.id}',{stopPropagation(){}})">削除</button>`;
+  } else if(isTransfer){
+    if(h.transferDir==='in'){
+      btns += `<button class="hd-btn close" onclick="hdCloseDetail()">閉じる</button>`;
+    } else {
+      btns += `<button class="hd-btn del" onclick="hdCloseDetail();deleteTransfer('${h.id}',{stopPropagation(){}})">削除</button>`;
+    }
+  } else if(isSavingsW){
+    btns += `<button class="hd-btn del" onclick="hdCloseDetail();deleteSavingsTx('${h.id}',${h.amount},{stopPropagation(){}})">削除</button>`;
+  } else if(isSavingsAdj){
+    btns += `<button class="hd-btn close" onclick="hdCloseDetail()">閉じる</button>`;
+  } else if(isBalAdj){
+    btns += `<button class="hd-btn del" onclick="hdCloseDetail();deleteBalAdj('${h.id}',{stopPropagation(){}})">削除</button>`;
+  } else if(h.wishItemId){
+    btns += `<button class="hd-btn del" onclick="hdCloseDetail();deleteWishBuyTx('${h.id}',{stopPropagation(){}})">削除</button>`;
+  } else {
+    btns += `<button class="hd-btn edit" onclick="hdCloseDetail();editTx('${h.id}',{stopPropagation(){}})">編集</button>`;
+    btns += `<button class="hd-btn del" onclick="hdCloseDetail();deleteTx('${h.id}',{stopPropagation(){}})">削除</button>`;
+  }
+  actions.innerHTML = btns;
+  document.getElementById('hd-overlay').classList.add('open');
+}
+function hdCloseDetail(){
+  document.getElementById('hd-overlay').classList.remove('open');
 }
 
 // ════════════════════════════════
@@ -4423,17 +4696,19 @@ function buildDetailCSV(year, month){
 }
 
 // 履歴タブのコンパクトCSVパネル：開閉
-function toggleCsvPanel(){
-  const p = document.getElementById('csv-panel');
-  if(p.style.display === 'none'){ populateCsvYears(); p.style.display = 'block'; document.getElementById('csv-chip').style.borderColor = 'var(--text)'; }
-  else closeCsvPanel();
+function hfToggleCsvPanel(){
+  const p = document.getElementById('hf-csv-panel');
+  if(!p) return;
+  if(p.classList.contains('open')){ hfCloseCsvPanel(); }
+  else { document.querySelectorAll('.hf-dropdown').forEach(d=>d.classList.remove('open')); populateCsvYears(); p.classList.add('open'); }
 }
-function closeCsvPanel(){
-  const p = document.getElementById('csv-panel');
-  if(p) p.style.display = 'none';
-  const chip = document.getElementById('csv-chip');
-  if(chip) chip.style.borderColor = 'var(--border)';
+function hfCloseCsvPanel(){
+  const p = document.getElementById('hf-csv-panel');
+  if(p) p.classList.remove('open');
 }
+// 旧API後方互換（exportHistoryCSV等から呼ばれる）
+function toggleCsvPanel(){ hfToggleCsvPanel(); }
+function closeCsvPanel(){ hfCloseCsvPanel(); }
 // 年プルダウン：直近2年（暦年）のうちデータのある年。2年より前は出さない。
 function populateCsvYears(){
   const sel = document.getElementById('csv-year');
@@ -4727,11 +5002,17 @@ function markApiDirty(){
 // ════════════════════════════════
 renderHome();
 renderSelect();
-populateFilterOptions();
 renderHistory();
 updateReportMonthLabel();
 updateWeekLabel();
 renderWeeklyStats();
+
+// 履歴フィルター：チップ／ドロップダウン／CSVボタンの外側クリックで閉じる
+document.addEventListener('click', e => {
+  if(!e.target.closest('.hf-chip') && !e.target.closest('.hf-dropdown') && !e.target.closest('.hf-csv') && !e.target.closest('.hf-csv-panel')){
+    document.querySelectorAll('.hf-dropdown').forEach(d=>d.classList.remove('open'));
+  }
+});
 </script>
 </body>
 </html>
