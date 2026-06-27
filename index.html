@@ -328,6 +328,36 @@ body {
 .hd-btn.del { border-color: var(--danger); color: var(--danger); }
 .hd-btn.del:active { background: var(--danger-bg); }
 .hd-btn.close { color: var(--muted); }
+/* ════ F-7 残高推移モーダル ════ */
+.bt-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 300; display: none; align-items: flex-end; justify-content: center; }
+.bt-overlay.open { display: flex; }
+.bt-sheet { background: var(--surface); border-radius: 18px 18px 0 0; width: 100%; max-width: 480px; max-height: 88vh; overflow-y: auto; box-shadow: 0 -4px 30px rgba(0,0,0,0.2); }
+.bt-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px 12px; border-bottom: 0.5px solid #e8e8e8; position: sticky; top: 0; background: var(--surface); z-index: 5; }
+.bt-title { font-size: 17px; font-weight: 900; color: var(--text); }
+.bt-close { background: none; border: none; font-size: 24px; color: var(--muted); cursor: pointer; padding: 0 4px; line-height: 1; font-family: var(--sans); }
+.bt-acct-bar { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px 6px; }
+.bt-acct-nav { background: none; border: none; font-size: 20px; color: var(--accent); cursor: pointer; padding: 2px 10px; font-family: var(--sans); }
+.bt-acct-name { font-size: 15px; font-weight: 700; color: var(--text); text-align: center; flex: 1; }
+.bt-acct-bal { text-align: center; padding: 2px 18px 12px; }
+.bt-acct-bal .v { font-size: 26px; font-weight: 900; color: var(--text); letter-spacing: -0.5px; }
+.bt-acct-bal .l { font-size: 11px; color: var(--muted); margin-bottom: 2px; }
+.bt-chart { padding: 8px 14px 4px; }
+.bt-bars { display: flex; align-items: flex-end; gap: 6px; height: 160px; padding: 0 4px; }
+.bt-bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; cursor: pointer; min-width: 0; }
+.bt-bar { width: 70%; max-width: 28px; background: var(--accent); border-radius: 4px 4px 0 0; transition: opacity .15s; min-height: 2px; }
+.bt-bar-col:active .bt-bar { opacity: 0.7; }
+.bt-bar.neg { background: #e84040; }
+.bt-bar.is-current { background: var(--text); }
+.bt-xlabels { display: flex; gap: 6px; padding: 6px 4px 0; }
+.bt-xlabel { flex: 1; text-align: center; font-size: 10px; color: var(--muted); min-width: 0; }
+.bt-xlabel.is-current { color: var(--accent); font-weight: 700; }
+.bt-tooltip { margin: 8px 14px 4px; background: #f0f5ff; border: 0.5px solid #d4e4fc; border-radius: 10px; padding: 12px 14px; font-size: 13px; color: var(--text); display: none; }
+.bt-tooltip.show { display: block; }
+.bt-tooltip .tt-month { font-weight: 900; margin-bottom: 4px; }
+.bt-tooltip .tt-row { display: flex; justify-content: space-between; padding: 2px 0; }
+.bt-tooltip .tt-row .tt-v { font-weight: 700; }
+.bt-empty { padding: 40px 18px; text-align: center; color: var(--muted); font-size: 13px; }
+.bt-hint { padding: 4px 18px 18px; font-size: 11px; color: var(--muted); line-height: 1.6; }
 
 /* ── Panel tabs ── */
 .panel-tab-row {
@@ -902,6 +932,28 @@ body {
   </div>
 </div>
 
+<!-- F-7 残高推移モーダル -->
+<div class="bt-overlay" id="bt-overlay" onclick="if(event.target===this)closeTrendModal()">
+  <div class="bt-sheet">
+    <div class="bt-head">
+      <div class="bt-title">残高の推移</div>
+      <button class="bt-close" onclick="closeTrendModal()">×</button>
+    </div>
+    <div class="bt-acct-bar">
+      <button class="bt-acct-nav" onclick="btChangeAccount(-1)">‹</button>
+      <div class="bt-acct-name" id="bt-acct-name"></div>
+      <button class="bt-acct-nav" onclick="btChangeAccount(1)">›</button>
+    </div>
+    <div class="bt-acct-bal">
+      <div class="l">現在の残高</div>
+      <div class="v" id="bt-acct-bal"></div>
+    </div>
+    <div class="bt-chart" id="bt-chart"></div>
+    <div class="bt-tooltip" id="bt-tooltip"></div>
+    <div class="bt-hint">確定済みの月は確定時点の月末残高、当月は現在の残高を表示します。棒グラフをタップすると前月との差が見られます。</div>
+  </div>
+</div>
+
 <!-- ════ REPORT ════ -->
 <div class="page" id="page-report">
   <div class="report-wrap">
@@ -1027,6 +1079,20 @@ body {
     </div>
     <button class="add-wallet-btn" onclick="addWallet()">＋ 口座を追加</button>
     <button class="save-btn" id="save-wallets-btn" onclick="saveWallets()" disabled>口座設定を保存</button>
+
+    <div class="sec-label" style="margin-top:12px">おこづかい合計</div>
+    <div class="setting-card">
+      <div class="setting-head">
+        <div class="setting-head-title">毎月のおこづかい総額</div>
+        <div class="setting-head-sub" style="font-size:12px">固定費＋自由費の合計</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;padding:12px 14px">
+        <span class="yen" style="flex-shrink:0;font-size:18px">¥</span>
+        <input type="number" class="filter-input" id="inp-okozukai-total" inputmode="numeric" placeholder="51000" oninput="onOkozukaiInput()" style="flex:1;min-width:0;font-size:18px;font-weight:700">
+      </div>
+      <div class="hint" style="font-size:12px;color:var(--muted);font-weight:500;line-height:1.6;padding:0 14px 12px">この金額から固定費を引いた残りが「自由費」になります。変更は確定済みの過去月には影響しません。</div>
+    </div>
+    <button class="save-btn" id="save-okozukai-btn" onclick="saveOkozukaiTotal()" disabled>おこづかい合計を保存</button>
 
     <div class="sec-label" style="margin-top:12px">固定費</div>
     <div class="setting-card">
@@ -1316,6 +1382,7 @@ const KEY_WISHLIST = 'kr_wishlist';
 const KEY_FIXED    = 'kr_fixed';    // {items, email}
 const KEY_RECURRING= 'kr_recurring';// [{id,kind,fromWallet,toWallet,payee,amount,memo,goal,goalDate,total}]
 const KEY_FOLDER   = 'kr_folder_url'; // 共有フォルダURL（週次・月次メールに埋め込む）
+const KEY_OKOZUKAI = 'kr_okozukai_total'; // おこづかい合計（デフォルト51000）。F-8でUI化。
 
 // ════════════════════════════════
 //  State
@@ -1343,7 +1410,9 @@ const WISH_WALLET   = 'SBI(自由貯金)';
 const WISH_CATEGORY = 'ほしいもの';
 // おこづかい合計（毎月この額を確保。式①②の基準）。マスタv1で確定した設計値。
 // ※将来検討：現状コード定数のためアプリUIから変更不可。将来的に管理者設定としてUIから編集可能にする。
-const OKOZUKAI_TOTAL = 51000;
+// おこづかい合計（F-8でUI化）。LS kr_okozukai_total から読む。デフォルト51000。
+function getOkozukaiTotal(){ const v = parseInt(LS.get(KEY_OKOZUKAI), 10); return (Number.isFinite(v) && v > 0) ? v : 51000; }
+function setOkozukaiTotal(v){ LS.set(KEY_OKOZUKAI, v); }
 // 定例項目11件（固定支出1・返済2・積立8）。連番・金額はマスタv1準拠。累計/残高は運用開始時に実機で調整。
 const DEFAULT_RECURRING = [
   {id:'rc1',  kind:'debt',    fromWallet:'代表口座(デビット)', payee:'司法書士返済',   category:'司法書士返済', amount:35000, memo:'No.1 司法書士返済', total:165000, goalDate:''},
@@ -1583,7 +1652,7 @@ function okozukaiSpentThisMonth(){
   return okozukaiSpentInMonth(now().getFullYear(), now().getMonth()+1);
 }
 // 自由費の月額枠＝おこづかい総額(51,000)−おこづかい固定費合計
-function freeMonthlyBudget(){ return Math.max(0, OKOZUKAI_TOTAL - fixedTotal()); }
+function freeMonthlyBudget(total){ const t = (typeof total === 'number') ? total : getOkozukaiTotal(); return Math.max(0, t - fixedTotal()); }
 
 // ── 月次全体ビューの集計（フェーズD-1：案A・純支出ベース）──
 // その月の全レコードを次の区分に振り分けて返す。
@@ -2498,6 +2567,9 @@ function renderSettings(){
       <button class="del-btn" onclick="delFixedItem(${i})">×</button>`;
     fc.appendChild(row);
   });
+  // おこづかい合計
+  const okoInput = document.getElementById('inp-okozukai-total');
+  if(okoInput) okoInput.value = getOkozukaiTotal();
   // メール設定
   document.getElementById('inp-email').value = fixedCosts.email || '';
   document.getElementById('inp-folder').value = LS.get(KEY_FOLDER) || '';
@@ -2531,6 +2603,22 @@ function saveFixedSettings(){
   document.getElementById('save-fixed-btn').disabled = true;
   populateCategorySelect();
   showToast('✓ 固定費を保存しました');
+}
+
+let okozukaiDirty = false;
+function onOkozukaiInput(){
+  okozukaiDirty = true;
+  document.getElementById('save-okozukai-btn').disabled = false;
+}
+function saveOkozukaiTotal(){
+  const v = parseInt(document.getElementById('inp-okozukai-total').value, 10);
+  if(!Number.isFinite(v) || v <= 0){ showToast('正しい金額を入力してください'); return; }
+  setOkozukaiTotal(v);
+  okozukaiDirty = false;
+  document.getElementById('save-okozukai-btn').disabled = true;
+  // 現在月の集計・ホーム・レポートを再描画（過去確定月はスナップショットで不変）
+  renderHome(); refreshMonthlyIfActive();
+  showToast(`✓ おこづかい合計を ¥${fmt(v)} に保存しました`);
 }
 
 let emailDirty = false;
@@ -2819,6 +2907,7 @@ function exportBackup(){
     fixedCosts:       LS.get(KEY_FIXED)    || fixedCosts,
     recurring:        LS.get(KEY_RECURRING)|| recurring,
     migration:        LS.get(KEY_MIGRATION)|| migration,
+    okozukaiTotal:    getOkozukaiTotal(),
   };
   const json = JSON.stringify(data, null, 2);
   const blob = new Blob([json], {type: 'application/json'});
@@ -2856,6 +2945,7 @@ function importBackup(input){
       // ※ history 内の baked フラグ・wallets 内の lastBalance はそれぞれの配列と一緒に復元済み。
       if(data.migration){ migration = data.migration; LS.set(KEY_MIGRATION, migration); }
       else { migration = null; LS.del(KEY_MIGRATION); }
+      if(typeof data.okozukaiTotal === 'number'){ setOkozukaiTotal(data.okozukaiTotal); }
       renderHome(); renderHistory(); refreshMonthlyIfActive(); renderSelect(); renderSettings();
       showToast('✓ バックアップから復元しました');
     } catch(err) {
@@ -3137,7 +3227,8 @@ function renderSummaryTab(){
   document.getElementById('su-net').style.color = net >= 0 ? '#1a9e6e' : '#e84040';
 
   // カテゴリリスト
-  const freeBudget = (suPeriod==='month') ? freeMonthlyBudget() : Math.round(freeMonthlyBudget()*7/30);
+  const suTotal = okozukaiTotalFor(suYear, suMonth);
+  const freeBudget = (suPeriod==='month') ? freeMonthlyBudget(suTotal) : Math.round(freeMonthlyBudget(suTotal)*7/30);
   document.getElementById('su-category-list').innerHTML = buildSuCategoryList(bd, freeBudget);
 }
 
@@ -3424,8 +3515,118 @@ function renderDrilldownDetail(txList, meta){
   });
   document.getElementById('dd-detail-section').innerHTML = html;
 }
+// ════════════════════════════════
+//  F-7 残高推移
+// ════════════════════════════════
+let btAccountIdx = 0;       // 現在表示中の口座インデックス（wallets基準）
+let btSelectedMonth = null; // ツールチップ対象の月インデックス
+
 function showBalanceTrend(){
-  showToast('残高推移グラフは準備中です（F-7で実装）');
+  if(!wallets.length){ showToast('口座がありません'); return; }
+  btAccountIdx = 0;
+  btSelectedMonth = null;
+  document.getElementById('bt-overlay').classList.add('open');
+  renderTrendChart();
+}
+function closeTrendModal(){
+  document.getElementById('bt-overlay').classList.remove('open');
+  document.getElementById('bt-tooltip').classList.remove('show');
+}
+function btChangeAccount(dir){
+  btAccountIdx = (btAccountIdx + dir + wallets.length) % wallets.length;
+  btSelectedMonth = null;
+  document.getElementById('bt-tooltip').classList.remove('show');
+  renderTrendChart();
+}
+
+// 直近12ヶ月分の {year, month, balance} を返す（口座名指定）。
+// 確定済月＝スナップショット balances、当月＝walletBalance（現在残高）、
+// その他（スナップショット無し過去月）＝直前の既知残高を引き継ぐ（簡易版）。
+function btSeries(walletName){
+  const td = now();
+  const curY = td.getFullYear(), curM = td.getMonth()+1;
+  const months = [];
+  for(let i=11;i>=0;i--){
+    const d = new Date(curY, curM-1-i, 1);
+    months.push({ year:d.getFullYear(), month:d.getMonth()+1 });
+  }
+  const curBal = walletBalance(walletName);
+  let lastKnown = null;
+  return months.map(mm => {
+    const isCurrent = (mm.year===curY && mm.month===curM);
+    const sm = getSummary(mm.year, mm.month);
+    let bal = null;
+    if(sm && sm.balances && typeof sm.balances[walletName] === 'number'){
+      bal = sm.balances[walletName];
+    } else if(isCurrent){
+      bal = curBal;
+    } else {
+      bal = lastKnown; // 既知の直前残高を引き継ぐ（無ければnull）
+    }
+    if(bal !== null) lastKnown = bal;
+    return { year:mm.year, month:mm.month, balance:bal, isCurrent };
+  });
+}
+
+function renderTrendChart(){
+  const w = wallets[btAccountIdx];
+  document.getElementById('bt-acct-name').textContent = w.name;
+  document.getElementById('bt-acct-bal').textContent = `¥${fmt(walletBalance(w.name))}`;
+
+  const series = btSeries(w.name);
+  const chart = document.getElementById('bt-chart');
+  const vals = series.map(s => s.balance).filter(v => v !== null);
+  if(!vals.length){
+    chart.innerHTML = '<div class="bt-empty">まだ残高データがありません。<br>月次確定をすると推移が記録されます。</div>';
+    return;
+  }
+  const maxV = Math.max(...vals, 0);
+  const minV = Math.min(...vals, 0);
+  const range = (maxV - minV) || 1;
+
+  let bars = '<div class="bt-bars">';
+  series.forEach((s, i) => {
+    if(s.balance === null){
+      bars += '<div class="bt-bar-col"><div class="bt-bar" style="height:0;background:transparent"></div></div>';
+    } else {
+      const h = Math.max(2, Math.round((s.balance - minV) / range * 150));
+      const cls = s.isCurrent ? ' is-current' : (s.balance < 0 ? ' neg' : '');
+      bars += `<div class="bt-bar-col" onclick="btShowTooltip(${i})"><div class="bt-bar${cls}" style="height:${h}px"></div></div>`;
+    }
+  });
+  bars += '</div><div class="bt-xlabels">';
+  series.forEach(s => {
+    bars += `<div class="bt-xlabel${s.isCurrent?' is-current':''}">${s.month}月</div>`;
+  });
+  bars += '</div>';
+  chart.innerHTML = bars;
+
+  // 既に選択中の月があれば再表示
+  if(btSelectedMonth !== null && series[btSelectedMonth] && series[btSelectedMonth].balance !== null){
+    btShowTooltip(btSelectedMonth);
+  }
+}
+
+function btShowTooltip(i){
+  btSelectedMonth = i;
+  const w = wallets[btAccountIdx];
+  const series = btSeries(w.name);
+  const cur = series[i];
+  if(!cur || cur.balance === null) return;
+  // 前月（既知値のある直近の前月）
+  let prev = null;
+  for(let j=i-1;j>=0;j--){ if(series[j].balance !== null){ prev = series[j]; break; } }
+  const diff = prev ? (cur.balance - prev.balance) : null;
+  const tt = document.getElementById('bt-tooltip');
+  let html = `<div class="tt-month">${cur.year}年${cur.month}月末</div>`;
+  html += `<div class="tt-row"><span>残高</span><span class="tt-v">¥${fmt(cur.balance)}</span></div>`;
+  if(diff !== null){
+    const sign = diff > 0 ? '+' : (diff < 0 ? '−' : '±');
+    const clr = diff > 0 ? 'var(--ok)' : (diff < 0 ? '#e84040' : 'var(--muted)');
+    html += `<div class="tt-row"><span>前月差</span><span class="tt-v" style="color:${clr}">${sign}¥${fmt(Math.abs(diff))}</span></div>`;
+  }
+  tt.innerHTML = html;
+  tt.classList.add('show');
 }
 // ホーム：定例を計上 — レポートタブの月次（定例計上）へ移動
 function doRecurring(){
@@ -3780,7 +3981,7 @@ async function runWeeklyCheck(){
   const okoBal       = okozukaiBalance();
   const okoSpentSoFar = okozukaiSpentThisMonth();
   // ペース判定はおこづかい総額(51,000)に対する消化率で見る
-  const okoPct       = OKOZUKAI_TOTAL > 0 ? Math.round(okoSpentSoFar / OKOZUKAI_TOTAL * 100) : 0;
+  const okoPct       = getOkozukaiTotal() > 0 ? Math.round(okoSpentSoFar / getOkozukaiTotal() * 100) : 0;
   const paceJudge    = okoPct <= monthPct - 10 ? '余裕あり'
                      : okoPct <= monthPct + 5  ? 'ほぼ想定通り'
                      : '使いすぎに注意';
@@ -3817,10 +4018,10 @@ ${memoList}
 今週の目立った支出（上位3件）：${topSpend}
 
 【今月のペース（${elapsedDays}日経過/${daysInMonth2}日、月の${monthPct}%）】
-おこづかい消化率：${okoPct}%（¥${fmt(okoSpentSoFar)}/¥${fmt(OKOZUKAI_TOTAL)}）→ ${paceJudge}
+おこづかい消化率：${okoPct}%（¥${fmt(okoSpentSoFar)}/¥${fmt(getOkozukaiTotal())}）→ ${paceJudge}
 おこづかい残高：¥${fmt(okoBal)}（残り${remainDays}日）
 ${fixedStatus}
-自由費（おこづかい${fmt(OKOZUKAI_TOTAL)}から固定費${fixedListStr}を除いた枠）：¥${fmt(freeTotal)}、使用済み¥${fmt(freeSpentSoFar)}、残り¥${fmt(Math.max(0,freeTotal-freeSpentSoFar))}${wishText}
+自由費（おこづかい${fmt(getOkozukaiTotal())}から固定費${fixedListStr}を除いた枠）：¥${fmt(freeTotal)}、使用済み¥${fmt(freeSpentSoFar)}、残り¥${fmt(Math.max(0,freeTotal-freeSpentSoFar))}${wishText}
 
 自由費はおこづかいから固定費（ガソリン・タバコ等）を引いた残り全部です。固定費を節約するほど自由費が増えます。使いすぎを責めるより、節約できている点を前向きに評価してください。
 
@@ -3938,7 +4139,7 @@ async function runConsult(){
 【現在の財務状況】
 おこづかい残高：¥${fmt(okoBal)}（残り${remainDays}日）
 今月の自由費残り：¥${fmt(freeRem)}
-毎月の自由費の枠（おこづかい${fmt(OKOZUKAI_TOTAL)}−固定費）：¥${fmt(monthlyFree)}
+毎月の自由費の枠（おこづかい${fmt(getOkozukaiTotal())}−固定費）：¥${fmt(monthlyFree)}
 自由貯金口座の残高：¥${fmt(freeSavBal)}
 
 【前提】
@@ -4321,6 +4522,13 @@ function getSummary(y, m){
   return monthlySummaries.find(s => s.year===y && s.month===m) || null;
 }
 
+// F-8 その月のおこづかい総額：確定済でスナップショットがあればそれを、無ければ現在値を返す。
+function okozukaiTotalFor(y, m){
+  const sm = getSummary(y, m);
+  if(sm && typeof sm.okozukaiTotal === 'number') return sm.okozukaiTotal;
+  return getOkozukaiTotal();
+}
+
 // 内訳ブロックのHTMLを組み立てる（AIは呼ばない・純粋な描画）。
 function buildBreakdownHTML(y, m){
   const bd = buildMonthlyBreakdown(y, m);
@@ -4331,7 +4539,7 @@ function buildBreakdownHTML(y, m){
     const it = (fixedCosts.items||[]).find(it => it.name === name);
     return it ? it.amount : null;
   };
-  const freeTotalBudget = freeMonthlyBudget();
+  const freeTotalBudget = freeMonthlyBudget(okozukaiTotalFor(y, m));
 
   const sectionHTML = (title, subtitle, rows, subtotal, subtotalBudget, muted) => {
     if(!rows.length && !subtotal) return '';
@@ -4389,7 +4597,7 @@ function buildBreakdownHTML(y, m){
   // おこづかい繰越（詳細集計に統合）
   const okoBal = okozukaiBalance();
   const toFree = okoBal;
-  const refill = Math.max(0, OKOZUKAI_TOTAL - okoBal);
+  const refill = Math.max(0, getOkozukaiTotal() - okoBal);
   html += `<div class="report-section">
     <div class="report-sec-label">おこづかいの繰越</div>
     <div class="report-row"><div class="report-row-name">おこづかい残金</div><div class="report-row-right"><span class="report-row-val">¥${fmt(okoBal)}</span></div></div>
@@ -4500,7 +4708,7 @@ let _monthlyViewCache = null;
 function openCloseDialog(){
   const okoBal = okozukaiBalance();
   const toFree = okoBal;
-  const refill = Math.max(0, OKOZUKAI_TOTAL - okoBal);
+  const refill = Math.max(0, getOkozukaiTotal() - okoBal);
   const reclosing = isMonthClosed(reportYear, reportMonth);
   document.getElementById('close-dialog-title').textContent = `${reportMonth}月の収支を${reclosing?'確定し直します':'確定します'}`;
   document.getElementById('close-dialog-rem').textContent = '¥' + fmt(okoBal);
@@ -4522,7 +4730,7 @@ async function confirmMonthlyClose(){
   const reclosing = isMonthClosed(y, m);
   const okoBal = okozukaiBalance();
   const toFree = okoBal;                                   // 式② 自由貯金へ回す額
-  const refill = Math.max(0, OKOZUKAI_TOTAL - okoBal);     // 式① 翌月補充額
+  const refill = Math.max(0, getOkozukaiTotal() - okoBal);     // 式① 翌月補充額
 
   closeCloseDialog();
   showToast('AI評価を生成しています...');
@@ -4536,7 +4744,11 @@ async function confirmMonthlyClose(){
   const firstClosedAt = (existIdx >= 0 && monthlySummaries[existIdx].firstClosedAt)
     ? monthlySummaries[existIdx].firstClosedAt
     : nowTs;
-  const summaryEntry = { year:y, month:m, aiComment, firstClosedAt, closedAt:nowTs, ts:nowTs };
+  // F-7/F-8 スナップショット：確定時点のおこづかい総額と全口座の月末残高を保存
+  const snapBalances = {};
+  wallets.forEach(w => { snapBalances[w.name] = walletBalance(w.name); });
+  const summaryEntry = { year:y, month:m, aiComment, firstClosedAt, closedAt:nowTs, ts:nowTs,
+    okozukaiTotal: getOkozukaiTotal(), balances: snapBalances };
   if(existIdx >= 0) monthlySummaries[existIdx] = summaryEntry;
   else monthlySummaries.push(summaryEntry);
   monthlySummaries.sort((a,b) => b.ts - a.ts);
@@ -4598,8 +4810,8 @@ async function generateMonthlyAI(y, m, carry){
 
   const prompt = `あなたは親しみやすい家計アドバイザーです。成人した子供のおこづかい管理を親子で振り返っています。
 
-おこづかいは毎月¥${fmt(OKOZUKAI_TOTAL)}。その内訳は「固定費（ガソリン/タバコ/定期/医療など、項目ごとに予算あり）」と「自由費（固定費を引いた残り全部）」の2本立てです。
-※ 下記の「定例の支払い」「積立・振替」「振替口座からの実支出」「その他の振替」は、おこづかい¥${fmt(OKOZUKAI_TOTAL)}とは別のお金（給料から配分・支払い）であり、おこづかいの評価には含めません。コメントの主役は固定費と自由費です。
+おこづかいは毎月¥${fmt(getOkozukaiTotal())}。その内訳は「固定費（ガソリン/タバコ/定期/医療など、項目ごとに予算あり）」と「自由費（固定費を引いた残り全部）」の2本立てです。
+※ 下記の「定例の支払い」「積立・振替」「振替口座からの実支出」「その他の振替」は、おこづかい¥${fmt(getOkozukaiTotal())}とは別のお金（給料から配分・支払い）であり、おこづかいの評価には含めません。コメントの主役は固定費と自由費です。
 
 【${y}年${m}月】
 ■ 固定費（おこづかい）実額¥${fmt(bd.fixed.total)} / 予算¥${fmt(fixedTotal())}
@@ -4615,7 +4827,7 @@ ${wishSection}${savingsNote}
 【おこづかいの繰越（重要・コメントに必ず含める）】
 ・今のおこづかい4口座の残高合計：¥${fmt(okoBal)}
 ・→ 自由貯金へ回す額（＝口座の残高合計）：¥${fmt(toFree)}
-・→ 翌月のおこづかい補充額：¥${fmt(refill)}（補充後に¥${fmt(OKOZUKAI_TOTAL)}に戻る）
+・→ 翌月のおこづかい補充額：¥${fmt(refill)}（補充後に¥${fmt(getOkozukaiTotal())}に戻る）
 
 【アドバイスの観点】
 ・評価の対象は「固定費」と「自由費」だけです。定例の支払い・振替・振替口座の実支出には深入りせず、必要なら軽く触れる程度にしてください。
@@ -4625,7 +4837,7 @@ ${wishSection}${savingsNote}
 ・「今月貯金から購入したもの」があれば嬉しそうに言及（集計とは無関係）。「使途不明金」「理由なし引き出し」があれば責めずに事実としてさらっと。
 
 以下の順でコメントしてください。
-1. 全体の評価（固定費＋自由費がおこづかい¥${fmt(OKOZUKAI_TOTAL)}に収まったか）
+1. 全体の評価（固定費＋自由費がおこづかい¥${fmt(getOkozukaiTotal())}に収まったか）
 2. 無駄遣いと思われる自由費項目を具体的に指摘（あれば）
 3. 固定費の評価（各項目について予算との差で褒める／優しく指摘）
 4. 今月の自由貯金へ回す額（¥${fmt(toFree)}）に必ず触れる。月末のおこづかい残高がまるごと自由貯金へ移ることを前向きに伝える
@@ -4847,10 +5059,11 @@ function refreshMonthlyIfActive(){
 }
 
 function showPage(id, tab){
-  if((walletsDirty || apiDirty || fixedDirty || recurringDirty) && currentPage === 'settings' && id !== 'settings'){
+  if((walletsDirty || apiDirty || fixedDirty || recurringDirty || okozukaiDirty) && currentPage === 'settings' && id !== 'settings'){
     const leave = window.confirm('設定が保存されていません。\nこのまま移動すると変更が失われます。\n移動しますか？');
     if(!leave) return;
-    walletsDirty = false; apiDirty = false; fixedDirty = false; recurringDirty = false;
+    walletsDirty = false; apiDirty = false; fixedDirty = false; recurringDirty = false; okozukaiDirty = false;
+    document.getElementById('save-okozukai-btn').disabled = true;
     document.getElementById('save-wallets-btn').disabled = true;
     document.getElementById('save-api-btn').disabled = true;
     document.getElementById('save-fixed-btn').disabled = true;
