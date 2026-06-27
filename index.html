@@ -113,8 +113,6 @@ body {
 .su-subtotal-amount { font-size: 15px; font-weight: 700; color: var(--text); }
 .su-subtotal-budget { font-size: 11px; color: #999; margin-top: 2px; }
 .su-subtotal-budget.over { color: #e84040; }
-.su-csv-footer { background: var(--surface); border-top: 0.5px solid #e8e8e8; padding: 14px 16px; }
-
 /* ── Drilldown (F-3) ── */
 .dd-header { display: flex; align-items: center; gap: 8px; padding: 14px 12px 12px; background: var(--surface); border-bottom: 0.5px solid #e8e8e8; position: sticky; top: 0; z-index: 10; }
 .dd-back-btn { background: none; border: none; cursor: pointer; color: var(--accent); font-size: 15px; font-weight: 700; font-family: var(--sans); padding: 2px 8px 2px 0; }
@@ -749,13 +747,6 @@ body {
 
   <!-- カテゴリリスト（JS描画） -->
   <div id="su-category-list"></div>
-
-  <!-- CSV出力 -->
-  <div class="su-csv-footer">
-    <button id="su-csv-btn" onclick="exportSummaryCsv()" style="width:100%;padding:12px;background:var(--surface);border:1.5px solid #d0d0d0;border-radius:10px;font-size:14px;font-weight:700;color:#555;font-family:var(--sans);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
-      ⬇ <span id="su-csv-label">CSVを出力</span>
-    </button>
-  </div>
 
 </div>
 
@@ -2863,10 +2854,6 @@ function renderSummaryTab(){
   // カテゴリリスト
   const freeBudget = (suPeriod==='month') ? freeMonthlyBudget() : Math.round(freeMonthlyBudget()*7/30);
   document.getElementById('su-category-list').innerHTML = buildSuCategoryList(bd, freeBudget);
-
-  // CSV ボタンラベル
-  document.getElementById('su-csv-label').textContent =
-    suPeriod==='month' ? `${suYear}年${suMonth}月のCSVを出力` : `${labelText}のCSVを出力`;
 }
 
 // 週単位の breakdown（buildMonthlyBreakdown の週版・簡易）
@@ -3003,46 +2990,36 @@ function suSubtotalRow(total, budget, over){
   </div>`;
 }
 
-// CSV出力（集計タブ）
-function exportSummaryCsv(){
-  let rows, filename;
-  if(suPeriod==='month'){
-    const tgt = ym(suYear, suMonth);
-    rows = history.filter(h => ym(h.year,h.month)===tgt && h.type!=='balance_adjust');
-    filename = `家計_${suYear}${String(suMonth).padStart(2,'0')}.csv`;
-  } else {
-    const {start,end} = suGetWeekRange();
-    rows = history.filter(h => {
-      const d=new Date(h.year,h.month-1,h.day);
-      return d>=start && d<=end && h.type!=='balance_adjust';
-    });
-    const fmt2=d=>`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
-    filename = `家計_${fmt2(start)}_${fmt2(end)}.csv`;
-  }
-  rows.sort((a,b)=>b.ts-a.ts);
-  const header = '日付,種別,口座,カテゴリ,内容,金額';
-  const lines = rows.map(h => {
-    const dateStr=`${h.year}/${String(h.month).padStart(2,'0')}/${String(h.day).padStart(2,'0')}`;
-    const kind = h.type==='income'?'収入':h.type==='transfer'?'振替':'支出';
-    return [dateStr, kind, h.walletName||'', h.category||'', h.memo||'', h.amount].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',');
-  });
-  const csv = '\uFEFF'+header+'\n'+lines.join('\n');
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
-  a.download = filename; a.click();
-  showToast('CSVを出力しました');
-}
-
 // ════════════════════════════════
 //  ドリルダウン（F-3）
 // ════════════════════════════════
-let ddCatName='', ddGroupLabel='', ddViewYear, ddViewMonth;
+let ddCatName='', ddGroupLabel='', ddBaseYear, ddBaseMonth, ddViewYear, ddViewMonth;
 
 function openDrilldown(catName, groupLabel){
   ddCatName   = catName;
   ddGroupLabel = groupLabel;
-  ddViewYear  = suYear;
-  ddViewMonth = suMonth;
+  // 起点月：その費目で最後にデータがある月。なければ今月。
+  // （集計タブが何月を表示していても棒グラフは常に最新データ月を右端にする）
+  const _d = now();
+  let _y = _d.getFullYear(), _m = _d.getMonth()+1;
+  const _latestTx = history
+    .filter(h => {
+      if(h.type==='transfer'||h.type==='income'||h.type==='balance_adjust') return false;
+      if(h.category) return h.category===catName;
+      if(typeof isTobacco==='function' && isTobacco(h.memo)) return catName==='タバコ代';
+      return false;
+    })
+    .sort((a,b) => b.ts - a.ts)[0];
+  if(_latestTx){
+    // 最新データ月が今月以降なら今月を使う（未来データ対策）
+    if(_latestTx.year < _y || (_latestTx.year===_y && _latestTx.month <= _m)){
+      _y = _latestTx.year; _m = _latestTx.month;
+    }
+  }
+  ddBaseYear  = _y;
+  ddBaseMonth = _m;
+  ddViewYear  = _y;  // 初期選択も同じ月
+  ddViewMonth = _m;
 
   // page-drilldown をアクティブに（タブバーのアクティブは維持）
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -3054,6 +3031,7 @@ function openDrilldown(catName, groupLabel){
 function closeDrilldown(){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-summary').classList.add('active');
+  renderSummaryTab();
 }
 
 function renderDrilldown(){
@@ -3085,15 +3063,16 @@ function renderDrilldown(){
     </div>`;
 
   // ── 棒グラフ（12ヶ月）──
+  // グラフ範囲はddBase（起点月）固定。選択月（ddView）が変わっても範囲はずれない。
   const months12 = [];
   for(let i=11;i>=0;i--){
-    let y=ddViewYear, m=ddViewMonth-i;
+    let y=ddBaseYear, m=ddBaseMonth-i;
     while(m<1){m+=12;y--;}
     months12.push({y,m});
   }
   const amounts = months12.map(({y,m})=>catTxInMonth(ddCatName,y,m).reduce((s,h)=>s+h.amount,0));
   const maxAmt  = Math.max(...amounts,1);
-  const avg     = Math.round(amounts.reduce((s,a)=>s+a,0)/12);
+  const avg     = Math.round(amounts.reduce((s,a)=>s+a,0)/12); // 直近12ヶ月合計÷12（マネフォ方式）
   const colHtml = months12.map(({y,m},i)=>{
     const a     = amounts[i];
     const pct   = Math.round(a/maxAmt*100);
@@ -3114,7 +3093,7 @@ function renderDrilldown(){
 }
 
 function ddSelectMonth(y,m){
-  ddViewYear=y; ddViewMonth=m;
+  ddViewYear=y; ddViewMonth=m;  // 選択月のみ変更。ddBaseは不変。
   renderDrilldown();
 }
 
