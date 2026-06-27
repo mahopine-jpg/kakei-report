@@ -845,6 +845,7 @@ body {
           <div id="monthly-stats"></div>
         </div>
       </div>
+      <button class="export-btn" onclick="exportWeeklyCSV()" style="margin-bottom:8px">⬇ 今週のCSVを出力</button>
       <button class="report-btn" onclick="runWeeklyCheck()">AIに週次チェックしてもらう</button>
       <div id="weekly-ai-wrap" style="display:none">
         <div class="report-card" style="margin-bottom:8px">
@@ -853,7 +854,7 @@ body {
             <div id="weekly-ai-output"></div>
           </div>
         </div>
-        <button class="export-btn" onclick="shareWeeklyMail()">📧 週次レポートをメールで共有</button>
+        <button class="export-btn" onclick="shareWeeklyMail()">📧 週次メールを送信</button>
       </div>
     </div>
 
@@ -878,7 +879,8 @@ body {
         <div id="monthly-ai-section"></div>
       </div>
 
-      <!-- 月次確定ボタン -->
+      <!-- 月次CSV出力＋月次確定ボタン -->
+      <button class="export-btn" id="export-month-csv-btn" onclick="exportMonthlyCSV()" style="margin-bottom:8px">⬇ この月のCSVを出力</button>
       <button class="report-btn" id="close-month-btn" onclick="openCloseDialog()">月次確定</button>
       <div class="hint" id="close-hint" style="font-size:12px;color:var(--muted);font-weight:500;line-height:1.6;margin-top:8px">※「月次確定」を押すと確認画面が出ます。確定するまで何も記録されません（AIも呼びません）。</div>
     </div>
@@ -981,8 +983,13 @@ body {
     <div class="sec-label" style="margin-top:12px">連絡先</div>
     <div class="setting-card">
       <div class="api-row">
-        <div class="api-label">週次レポートの送り先メールアドレス</div>
+        <div class="api-label">週次・月次レポートの送り先メールアドレス</div>
         <input type="email" class="inp-api" id="inp-email" placeholder="例：parent@example.com" oninput="markEmailDirty()" style="font-family:var(--sans)">
+      </div>
+      <div class="api-row" style="margin-top:10px">
+        <div class="api-label">共有フォルダのURL（メールに記載されます）</div>
+        <input type="url" class="inp-api" id="inp-folder" placeholder="例：https://drive.google.com/..." oninput="markEmailDirty()" style="font-family:var(--sans)">
+        <div class="api-note">CSVを保存している共有フォルダのリンクです。週次・月次メールの末尾に固定で記載されます。</div>
       </div>
     </div>
     <button class="save-btn" id="save-email-btn" onclick="saveEmail()" disabled>連絡先を保存</button>
@@ -1222,6 +1229,7 @@ const KEY_MIGRATION= 'kr_migration'; // α移行の記録 {migratedAt} 。未設
 const KEY_WISHLIST = 'kr_wishlist';
 const KEY_FIXED    = 'kr_fixed';    // {items, email}
 const KEY_RECURRING= 'kr_recurring';// [{id,kind,fromWallet,toWallet,payee,amount,memo,goal,goalDate,total}]
+const KEY_FOLDER   = 'kr_folder_url'; // 共有フォルダURL（週次・月次メールに埋め込む）
 
 // ════════════════════════════════
 //  State
@@ -2218,6 +2226,7 @@ function renderSettings(){
   });
   // メール設定
   document.getElementById('inp-email').value = fixedCosts.email || '';
+  document.getElementById('inp-folder').value = LS.get(KEY_FOLDER) || '';
   // APIキー表示
   const stored = LS.get(KEY_API)||'';
   document.getElementById('inp-api').value = stored ? '●'.repeat(20) : '';
@@ -2258,6 +2267,8 @@ function markEmailDirty(){
 function saveEmail(){
   fixedCosts.email = (document.getElementById('inp-email').value || '').trim();
   LS.set(KEY_FIXED, fixedCosts);
+  const folder = (document.getElementById('inp-folder').value || '').trim();
+  if(folder) LS.set(KEY_FOLDER, folder); else LS.del(KEY_FOLDER);
   emailDirty = false;
   document.getElementById('save-email-btn').disabled = true;
   showToast('✓ 連絡先を保存しました');
@@ -3564,79 +3575,22 @@ ${fixedStatus}
 }
 
 function shareWeeklyMail(){
-  const aiText = document.getElementById('weekly-ai-output').querySelector('.ai-box')?.innerText||'';
+  const aiText = document.getElementById('weekly-ai-output').querySelector('.ai-box')?.innerText || '';
   const {mon, sun} = getWeekRange();
   const fmt2 = d => `${d.getMonth()+1}/${d.getDate()}`;
-  const d = now();
-  const cym = currentYM();
-  const okoBal = okozukaiBalance();
-  const okoSpentSoFar = okozukaiSpentThisMonth();
-  const weekTx = history.filter(h => {
-    if(h.rolledOver||h.type==='transfer'||h.type==='income'||h.type==='balance_adjust') return false;
-    const dt = new Date(h.year, h.month-1, h.day);
-    return dt >= mon && dt <= sun;
-  });
-  const weekSpent = weekTx.reduce((s,h)=>s+h.amount,0);
-
-  // 今週の支出明細（日付順）
-  const sortedTx = [...weekTx].sort((a,b)=>{
-    const da = new Date(a.year,a.month-1,a.day), db = new Date(b.year,b.month-1,b.day);
-    return da - db || a.ts - b.ts;
-  });
-  const detailLines = sortedTx.length
-    ? sortedTx.map(h =>
-        `  ${String(h.month).padStart(2,'0')}/${String(h.day).padStart(2,'0')}  ${(h.memo||'（メモなし）').padEnd(10,'　')}  ¥${fmt(h.amount)}`
-      ).join('\n')
-    : '  記帳なし';
-
-  // 今月ペース
-  const daysInMonth3 = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
-  const elapsedDays3 = d.getDate();
-  const monthPct3    = Math.round(elapsedDays3 / daysInMonth3 * 100);
-  const okoPct3      = OKOZUKAI_TOTAL > 0 ? Math.round(okoSpentSoFar / OKOZUKAI_TOTAL * 100) : 0;
-  const paceJudge3   = okoPct3 <= monthPct3 - 10 ? '余裕あり'
-                     : okoPct3 <= monthPct3 + 5  ? 'ほぼ想定通り'
-                     : '使いすぎに注意';
-  const remainDays3  = daysInMonth3 - elapsedDays3;
-
-  // 固定費（項目別）
-  const fixedMailItems = fixedSpentByItem();
-  const fixedSection = fixedMailItems.length
-    ? fixedMailItems.map(it => {
-        const pct = it.amount > 0 ? Math.round(it.spent / it.amount * 100) : '-';
-        return `  ${(it.name).padEnd(8,'　')}¥${fmt(it.spent)} / ¥${fmt(it.amount)}（${pct}%）`;
-      }).join('\n')
-    : '  （固定費なし）';
-
-  // 欲しいものリスト
-  const wishItems = wishList.filter(w=>w.status==='considering');
-  const wishSection = wishItems.length
-    ? '\n■ 欲しいもの（検討中）\n' + wishItems.map(w=>`  ・${w.name}（¥${fmt(w.price)}）`).join('\n')
+  const folder = LS.get(KEY_FOLDER) || '';
+  const folderSection = folder
+    ? `\n━━━━━━━━━━━━━━━━━━━━\n■ 共有フォルダ（CSV）\n${folder}\n`
     : '';
 
   const subject = encodeURIComponent(`おこづかい週次レポート（${fmt2(mon)}〜${fmt2(sun)}）`);
   const body = encodeURIComponent(
 `おこづかい週次レポート ${fmt2(mon)}〜${fmt2(sun)}
 ━━━━━━━━━━━━━━━━━━━━
-
-■ 今週の支出明細
-${detailLines}
-  ──────────────────
-  今週合計  ¥${fmt(weekSpent)}
-
-■ 今月のペース（${elapsedDays3}日経過/${daysInMonth3}日中）
-  おこづかい消化：¥${fmt(okoSpentSoFar)} / ¥${fmt(OKOZUKAI_TOTAL)}（${okoPct3}%）
-  月の経過：${monthPct3}%　→　${paceJudge3}
-  おこづかい残高：¥${fmt(okoBal)}（残り${remainDays3}日）
-
-■ 固定費（今月）
-${fixedSection}
-${wishSection}
-━━━━━━━━━━━━━━━━━━━━
 ■ 今週のAIコメント
-${aiText}
-`);
-  const to = encodeURIComponent(fixedCosts.email||'');
+${aiText || '（AIコメントなし）'}
+${folderSection}`);
+  const to = encodeURIComponent(fixedCosts.email || '');
   window.location.href = `mailto:${to}?subject=${subject}&body=${body}`;
 }
 
@@ -4507,6 +4461,35 @@ function downloadCSV(csv, filename){
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
   a.href=url; a.download=filename; a.click(); URL.revokeObjectURL(url);
+}
+
+// 今週（週セレクタの選択週）の明細をDB形式CSVで出力
+function buildWeekCSV(mon, sun){
+  let csv = '\uFEFF日付,年,月,口座,種別,カテゴリ,内容,金額,相手口座,定例\n';
+  history
+    .filter(h => {
+      const d = new Date(h.year, h.month-1, h.day);
+      return d >= mon && d <= sun;
+    })
+    .sort((a,b)=> new Date(a.year,a.month-1,a.day) - new Date(b.year,b.month-1,b.day) || (a.ts||0)-(b.ts||0))
+    .forEach(h => { csv += recordToRow(h).map(csvCell).join(',') + '\n'; });
+  return csv;
+}
+
+// レポートタブ・週次：選択中の週のCSVを出力
+function exportWeeklyCSV(){
+  const {mon, sun} = getWeekRange();
+  const csv = buildWeekCSV(mon, sun);
+  const tag = `${mon.getFullYear()}${String(mon.getMonth()+1).padStart(2,'0')}${String(mon.getDate()).padStart(2,'0')}`;
+  downloadCSV(csv, `kakei_report_week_${tag}.csv`);
+  showToast(`${mon.getMonth()+1}/${mon.getDate()}〜${sun.getMonth()+1}/${sun.getDate()}の週次CSVを出力しました`);
+}
+
+// レポートタブ・月次：選択中の月のCSVを出力
+function exportMonthlyCSV(){
+  const csv = buildDetailCSV(reportYear, reportMonth);
+  downloadCSV(csv, `kakei_report_detail_${reportYear}${String(reportMonth).padStart(2,'0')}.csv`);
+  showToast(`${reportYear}年${reportMonth}月の明細CSVを出力しました`);
 }
 
 // ════════════════════════════════
