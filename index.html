@@ -1007,9 +1007,6 @@ body {
       <!-- 確定済バナー（確定済の月のみ表示） -->
       <div id="closed-banner"></div>
 
-      <!-- 今月の定例項目（計上）：確定の前段。確定済月では非表示 -->
-      <div id="recurring-monthly" style="margin-bottom:18px"></div>
-
       <!-- 詳細集計（常設）：収入／固定費／自由費／定例／積立振替／純支出・収支／おこづかい繰越 -->
       <div class="report-card" style="margin-bottom:14px">
         <div id="closed-summary-head"></div>
@@ -4704,13 +4701,6 @@ function renderMonthlyView(){
   const summary  = getSummary(reportYear, reportMonth);
   const d = now();
   const isFuture = (reportYear > d.getFullYear()) || (reportYear === d.getFullYear() && reportMonth > d.getMonth()+1);
-
-  // 定例計上パネル：確定済・未来月では隠す（確定の前段の作業なので）
-  const recBox = document.getElementById('recurring-monthly');
-  if(recBox){
-    if(closed || isFuture){ recBox.style.display = 'none'; recBox.innerHTML = ''; }
-    else { recBox.style.display = 'block'; renderRecurringMonthly(); }
-  }
 
   // 確定済バナー
   const banner = document.getElementById('closed-banner');
