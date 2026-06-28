@@ -1634,6 +1634,23 @@ function walletBalance(walletName){
       return s - h.amount;
     }, base);
 }
+
+// baked済み明細を削除する前に呼ぶ：その明細が残高へ与えていた符号付き寄与を
+// lastBalance（焼き付け基点）から打ち消す。未移行(β)やbaked無しの明細では何もしない。
+// 振替は walletName 側の口座について補正する（in/outそれぞれ自分の口座を持つ）。
+function unbakeAdjust(h){
+  if(!isMigrated() || !h || !h.baked) return;
+  const w = wallets.find(w => w.name === h.walletName);
+  if(!w) return;
+  if(typeof w.lastBalance !== 'number') w.lastBalance = 0;
+  let contribution; // この明細が残高に与えていた符号付きの増減
+  if(h.type === 'income')            contribution = h.amount;
+  else if(h.type === 'transfer')     contribution = (h.transferDir === 'in' ? h.amount : -h.amount);
+  else if(h.type === 'balance_adjust') contribution = h.diff;
+  else                               contribution = -h.amount; // 通常支出
+  // 寄与を打ち消す＝基点から差し引く
+  w.lastBalance -= contribution;
+}
 // おこづかい4口座（group:'okozukai'）の保持残高合計（方式β）
 function okozukaiBalance(){
   return wallets
@@ -2244,13 +2261,16 @@ function addIncome(){
   if(editingIncomeId){
     const tx = history.find(h=>h.id===editingIncomeId);
     if(tx){
+      // baked済みを編集：書き換え前の旧寄与を基点から打ち消し、baked印を外す
+      unbakeAdjust(tx);
+      if(tx.baked) delete tx.baked;
       tx.walletName = wallets[wIdx].name;
       tx.amount = amount;
       tx.memo = memo;
       tx.year = d.getFullYear(); tx.month = d.getMonth()+1; tx.day = d.getDate(); tx.ts = d.getTime();
     }
     editingIncomeId = null;
-    LS.set(KEY_HISTORY, history);
+    LS.set(KEY_HISTORY, history); LS.set(KEY_WALLETS, wallets);
     renderHome(); renderHistory();
     closePanel();
     showToast('収入を修正しました');
@@ -2322,8 +2342,10 @@ function deleteTransfer(outId, e){
   if(!tx) return;
   if(!confirm('この口座移動を削除しますか？\n（2件まとめて削除されます）')) return;
   const pairId = tx.transferPairId;
+  // ペア両側（out/in）それぞれ自分の口座について基点を補正
+  history.filter(h=>h.transferPairId===pairId).forEach(unbakeAdjust);
   history = history.filter(h=>h.transferPairId!==pairId);
-  LS.set(KEY_HISTORY, history);
+  LS.set(KEY_HISTORY, history); LS.set(KEY_WALLETS, wallets);
   renderHistory(); renderHome();
   showToast('口座移動を削除しました');
 }
@@ -2343,6 +2365,10 @@ function addTx(){
     // 編集モード
     const idx2 = history.findIndex(h=>h.id===editingTxId);
     if(idx2>=0){
+      // baked済みを編集する場合：旧寄与を基点から打ち消し、baked印を外して
+      // 通常の履歴として残高計算に乗せる（編集後は基点ではなく履歴で扱う）
+      unbakeAdjust(history[idx2]);
+      const wasBaked = !!history[idx2].baked;
       history[idx2] = {
         ...history[idx2],
         walletName: wallets[idx].name,
@@ -2353,7 +2379,8 @@ function addTx(){
         month: d.getMonth()+1,
         day:   d.getDate(),
       };
-      LS.set(KEY_HISTORY, history);
+      if(wasBaked) delete history[idx2].baked;
+      LS.set(KEY_HISTORY, history); LS.set(KEY_WALLETS, wallets);
       showToast('✓ 記帳を修正しました');
     }
   } else {
@@ -2415,8 +2442,10 @@ function editTx(id, e){
 function deleteTx(id, e){
   e.stopPropagation();
   if(!confirm('この記帳を削除しますか？')) return;
+  const tx = history.find(h=>h.id===id);
+  unbakeAdjust(tx);                       // baked済みなら基点を補正
   history = history.filter(h=>h.id!==id);
-  LS.set(KEY_HISTORY, history);
+  LS.set(KEY_HISTORY, history); LS.set(KEY_WALLETS, wallets);
   renderHistory(); renderHome();
   showToast('削除しました');
 }
@@ -2436,8 +2465,9 @@ function deleteWishBuyTx(id, e){
   e.stopPropagation();
   if(!confirm('このほしいもの購入記録を削除しますか？\n（自由貯金口座の残高が戻り、リストの項目は「検討中」に戻ります）')) return;
   const tx = history.find(h=>h.id===id);
+  unbakeAdjust(tx);
   history = history.filter(h=>h.id!==id);
-  LS.set(KEY_HISTORY, history);
+  LS.set(KEY_HISTORY, history); LS.set(KEY_WALLETS, wallets);
   if(tx && tx.wishItemId){
     const idx = wishList.findIndex(w=>w.id===tx.wishItemId);
     if(idx >= 0){
@@ -2454,8 +2484,10 @@ function deleteWishBuyTx(id, e){
 function deleteBalAdj(id, e){
   e.stopPropagation();
   if(!confirm('この残高調整を取り消しますか？\n（残高は調整前の値に戻ります）')) return;
+  const tx = history.find(h=>h.id===id);
+  unbakeAdjust(tx);
   history = history.filter(h=>h.id!==id);
-  LS.set(KEY_HISTORY, history);
+  LS.set(KEY_HISTORY, history); LS.set(KEY_WALLETS, wallets);
   renderHistory(); renderHome();
   showToast('残高調整を取り消しました');
 }
@@ -2484,8 +2516,10 @@ function editIncome(id, e){
 function deleteIncome(id, e){
   e.stopPropagation();
   if(!confirm('この収入記録を削除しますか？')) return;
+  const tx = history.find(h=>h.id===id);
+  unbakeAdjust(tx);
   history = history.filter(h=>h.id!==id);
-  LS.set(KEY_HISTORY, history);
+  LS.set(KEY_HISTORY, history); LS.set(KEY_WALLETS, wallets);
   renderHistory(); renderHome();
   showToast('削除しました');
 }
