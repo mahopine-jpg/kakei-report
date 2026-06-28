@@ -1189,10 +1189,21 @@ body {
     <div class="sec-label" style="margin-top:12px">ヘルプ</div>
     <div class="setting-card">
       <div style="padding:14px">
-        <a href="./okozukai_manual.html" style="display:flex;align-items:center;justify-content:space-between;text-decoration:none;color:var(--text)">
+        <a href="./kakei_report_user_guide.html" style="display:flex;align-items:center;justify-content:space-between;text-decoration:none;color:var(--text)">
           <div>
             <div style="font-size:16px;font-weight:700">📖 使い方・運用マニュアル</div>
             <div style="font-size:13px;font-weight:700;color:var(--muted);margin-top:2px">困ったときはこちら</div>
+          </div>
+          <div style="font-size:18px;color:var(--muted)">›</div>
+        </a>
+      </div>
+    </div>
+    <div class="setting-card" style="margin-top:8px">
+      <div style="padding:14px">
+        <a href="./setup.html" style="display:flex;align-items:center;justify-content:space-between;text-decoration:none;color:var(--text)">
+          <div>
+            <div style="font-size:16px;font-weight:700">⚙️ 初期セットアップ</div>
+            <div style="font-size:13px;font-weight:700;color:var(--danger);margin-top:2px">最初の1回だけ・データが初期化されます</div>
           </div>
           <div style="font-size:18px;color:var(--muted)">›</div>
         </a>
@@ -1427,7 +1438,7 @@ function getOkozukaiTotal(){ const v = parseInt(LS.get(KEY_OKOZUKAI), 10); retur
 function setOkozukaiTotal(v){ LS.set(KEY_OKOZUKAI, v); }
 // 定例項目11件（固定支出1・返済2・積立8）。連番・金額はマスタv1準拠。累計/残高は運用開始時に実機で調整。
 const DEFAULT_RECURRING = [
-  {id:'rc1',  kind:'debt',    fromWallet:'代表口座(デビット)', payee:'司法書士返済',   category:'司法書士返済', amount:35000, memo:'No.1 司法書士返済', total:165000, goalDate:''},
+  {id:'rc1',  kind:'debt',    fromWallet:'代表口座(デビット)', payee:'司法書士返済',   category:'司法書士返済', amount:35000, memo:'No.1 司法書士返済', total:'',      goalDate:''},
   {id:'rc4',  kind:'debt',    fromWallet:'代表口座(デビット)', payee:'借金返済(親へ)', category:'借金返済(親へ)', amount:10000, memo:'No.4 借金返済(親へ)', total:270000, goalDate:''},
   {id:'rc3',  kind:'fixed',   fromWallet:'代表口座(デビット)', payee:'家賃(親へ)',     category:'家賃(親へ)', amount:50000, memo:'No.3 家賃(親へ)'},
   {id:'rc2',  kind:'reserve', fromWallet:'代表口座(デビット)', toWallet:'SBI(司法書士プール)', amount:15000, memo:'No.2 司法書士プール', goal:0,      goalDate:''},
@@ -1544,8 +1555,9 @@ function populateCategorySelect(){
   if(!sel) return;
   const prev = sel.value;
   const cats = allCategories();
-  sel.innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
+  sel.innerHTML = '<option value="">カテゴリを選択</option>' + cats.map(c => `<option value="${c}">${c}</option>`).join('');
   if(cats.includes(prev)) sel.value = prev;
+  // prev が空（未選択）のままにしたい場合は何もしない（プレースホルダーが選択される）
 }
 
 // 固定費合計を返すヘルパー
@@ -3133,6 +3145,9 @@ function resetEverything(){
   migration = null;
   fixedCosts = { items: DEFAULT_FIXED.items.map(it => ({...it})), email:'' };
   wallets = DEFAULT_WALLETS.map(w => ({ lastBalance: 0, ...w }));
+  // reserve 定例の積立先が口座一覧にない場合は補完（例：SBI(ライフイベント)）
+  { const names = new Set(wallets.map(w => w.name));
+    recurring.forEach(it => { if(it.kind === 'reserve' && it.toWallet && !names.has(it.toWallet)){ wallets.push({ name: it.toWallet, budget: 0, group: 'carry', lastBalance: 0 }); names.add(it.toWallet); } }); }
   LS.set(KEY_RECURRING, recurring); LS.set(KEY_FIXED, fixedCosts); LS.set(KEY_WALLETS, wallets);
   renderHome(); renderHistory(); refreshMonthlyIfActive(); renderSelect(); renderSettings();
   showToast('完全リセットしました');
@@ -5093,7 +5108,7 @@ function closePanel(){
   document.getElementById('inp-amount').value='';
   document.getElementById('inp-memo').value='';
   document.getElementById('inp-date').value='';
-  { const cs=document.getElementById('inp-category'); if(cs) cs.selectedIndex=0; }
+  { const cs=document.getElementById('inp-category'); if(cs) cs.value=''; }
   document.getElementById('add-tx-btn').disabled=true;
   document.getElementById('receipt-loading').style.display='none';
   document.getElementById('receipt-btn-wrap').style.display='none';
@@ -5171,8 +5186,8 @@ let editingTxId  = null;
 
 function checkAddBtn(){
   const v = parseInt(document.getElementById('inp-amount').value)||0;
-  // 内容は任意。金額が入っていれば記帳可能。
-  document.getElementById('add-tx-btn').disabled = (v <= 0);
+  const cat = document.getElementById('inp-category').value;
+  document.getElementById('add-tx-btn').disabled = (v <= 0 || !cat);
 }
 
 function onWalletSelectChange(){
