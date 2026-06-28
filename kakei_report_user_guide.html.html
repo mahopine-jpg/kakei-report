@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>家計レポート｜使い方ガイド</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: #f0f0ed;
+    color: #1a1a1a;
+    font-size: 15px;
+    line-height: 1.75;
+    padding: 0 0 60px;
+  }
+
+  /* ページヘッダー */
+  .page-header {
+    background: #1a7fe8;
+    color: #fff;
+    padding: 28px 20px 22px;
+  }
+  .page-header h1 {
+    font-size: 21px;
+    font-weight: 900;
+    letter-spacing: .02em;
+  }
+  .page-header p {
+    font-size: 13px;
+    opacity: .85;
+    margin-top: 6px;
+  }
+
+  /* 目次 */
+  .toc {
+    background: #fff;
+    margin: 16px 12px 0;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .toc-header {
+    background: #f0f0ed;
+    padding: 10px 16px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #888884;
+    letter-spacing: .06em;
+  }
+  .toc-list {
+    list-style: none;
+    padding: 4px 0;
+  }
+  .toc-list li a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 16px;
+    text-decoration: none;
+    color: #1a1a1a;
+    font-size: 14px;
+    border-bottom: 0.5px solid #e8e8e4;
+  }
+  .toc-list li:last-child a { border-bottom: none; }
+  .toc-list li a:hover { background: #f8f8f6; }
+  .toc-icon {
+    font-size: 17px;
+    width: 22px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .toc-arrow {
+    margin-left: auto;
+    color: #c4c4c0;
+    font-size: 13px;
+  }
+
+  /* セクション */
+  .section {
+    background: #fff;
+    margin: 16px 12px 0;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .section-header {
+    background: #f0f0ed;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-header .icon { font-size: 18px; }
+  .section-header h2 {
+    font-size: 15px;
+    font-weight: 900;
+  }
+  .section-header .sub {
+    font-size: 12px;
+    color: #888884;
+    margin-left: auto;
+  }
+  .section-body {
+    padding: 18px 16px;
+  }
+
+  /* リード文 */
+  .lead {
+    font-size: 14px;
+    color: #444;
+    margin-bottom: 16px;
+    line-height: 1.8;
+  }
+
+  /* 操作手順 */
+  .op-steps {
+    list-style: none;
+    counter-reset: op;
+  }
+  .op-steps li {
+    counter-increment: op;
+    display: flex;
+    gap: 10px;
+    padding: 9px 0;
+    font-size: 14px;
+    border-bottom: 0.5px solid #e8e8e4;
+    align-items: flex-start;
+  }
+  .op-steps li:last-child { border-bottom: none; }
+  .op-steps li::before {
+    content: counter(op);
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    background: #1a1a1a;
+    color: #fff;
+    border-radius: 50%;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 2px;
+  }
+
+  /* 説明ブロック */
+  .desc-block {
+    padding: 12px 0;
+    border-bottom: 0.5px solid #e8e8e4;
+  }
+  .desc-block:last-child { border-bottom: none; }
+  .desc-block h3 {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .desc-block p {
+    font-size: 14px;
+    color: #444;
+  }
+
+  /* ポイントカード */
+  .point-card {
+    background: #f0f0ed;
+    border-radius: 8px;
+    padding: 14px;
+    margin-top: 14px;
+    font-size: 14px;
+  }
+  .point-card .label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #888884;
+    letter-spacing: .06em;
+    margin-bottom: 6px;
+  }
+
+  /* 注意・OKボックス */
+  .warn-box {
+    background: #fdf0e0;
+    border-left: 3px solid #a05a00;
+    border-radius: 0 8px 8px 0;
+    padding: 12px 14px;
+    margin-top: 14px;
+    font-size: 13px;
+    color: #6b3c00;
+  }
+  .warn-box strong { color: #a05a00; }
+
+  .ok-box {
+    background: #e6f4ec;
+    border-left: 3px solid #1a7a4a;
+    border-radius: 0 8px 8px 0;
+    padding: 12px 14px;
+    margin-top: 14px;
+    font-size: 13px;
+    color: #0e4a2a;
+  }
+  .ok-box strong { color: #1a7a4a; }
+
+  /* 操作パス */
+  .path {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #f0f0ed;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin: 8px 0 4px;
+  }
+  .path span { color: #888884; }
+
+  /* 月次フロー */
+  .flow {
+    list-style: none;
+    position: relative;
+    padding-left: 28px;
+    margin-top: 12px;
+  }
+  .flow::before {
+    content: '';
+    position: absolute;
+    left: 9px;
+    top: 8px;
+    bottom: 8px;
+    width: 2px;
+    background: #d8d8d4;
+  }
+  .flow li {
+    position: relative;
+    padding: 8px 0 8px 14px;
+    font-size: 14px;
+  }
+  .flow li::before {
+    content: '';
+    position: absolute;
+    left: -19px;
+    top: 14px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #1a7fe8;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 2px #1a7fe8;
+  }
+  .flow li .flow-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #888884;
+    letter-spacing: .05em;
+    margin-bottom: 2px;
+  }
+  .flow li strong {
+    display: block;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .flow li p {
+    font-size: 13px;
+    color: #555;
+    margin-top: 2px;
+  }
+
+  /* 仕切り */
+  .divider {
+    height: 0.5px;
+    background: #e8e8e4;
+    margin: 16px 0;
+  }
+
+  .mt4  { margin-top: 4px; }
+  .mt8  { margin-top: 8px; }
+  .mt12 { margin-top: 12px; }
+  .mt16 { margin-top: 16px; }
+  .bold { font-weight: 700; }
+  .muted { color: #888884; }
+  .small { font-size: 13px; }
+
+  /* フッター */
+  .footer {
+    text-align: center;
+    color: #888884;
+    font-size: 12px;
+    margin-top: 32px;
+  }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>家計レポート｜使い方ガイド</h1>
+  <p>日々の記帳から月次確定まで、毎月の運用をまとめています</p>
+</div>
+
+<div class="ok-box" style="margin:16px 16px 0">
+  <strong>📋 はじめて使うときは</strong><br>
+  まず「初期セットアップガイド」から初期セットアップを済ませてください。各口座の残高や返済済み額など、最初に一度だけ行う設定です。設定が終わってから、このガイドの内容に沿って日々の運用を始めてください。<br>
+  <a href="./setup.html" style="display:inline-block;margin-top:8px;font-weight:700;color:#1a7a4a">→ 初期セットアップガイドを開く</a>
+</div>
+
+
+<!-- ==============================
+  目次
+=============================== -->
+<div class="toc">
+  <div class="toc-header">もくじ</div>
+  <ul class="toc-list">
+    <li><a href="#monthly-flow"><span class="toc-icon">📅</span>毎月の流れ<span class="toc-arrow">›</span></a></li>
+    <li><a href="#home"><span class="toc-icon">🏠</span>ホーム<span class="toc-arrow">›</span></a></li>
+    <li><a href="#record"><span class="toc-icon">✏️</span>記帳のしかた<span class="toc-arrow">›</span></a></li>
+    <li><a href="#recurring"><span class="toc-icon">🔄</span>定例計上<span class="toc-arrow">›</span></a></li>
+    <li><a href="#summary"><span class="toc-icon">📊</span>集計タブ<span class="toc-arrow">›</span></a></li>
+    <li><a href="#report"><span class="toc-icon">📋</span>レポートタブ・月次確定<span class="toc-arrow">›</span></a></li>
+    <li><a href="#history"><span class="toc-icon">📝</span>履歴タブ<span class="toc-arrow">›</span></a></li>
+    <li><a href="#consult"><span class="toc-icon">💬</span>相談タブ<span class="toc-arrow">›</span></a></li>
+    <li><a href="#backup"><span class="toc-icon">💾</span>バックアップ<span class="toc-arrow">›</span></a></li>
+  </ul>
+</div>
+
+
+<!-- ==============================
+  毎月の流れ
+=============================== -->
+<div class="section" id="monthly-flow">
+  <div class="section-header">
+    <span class="icon">📅</span>
+    <h2>毎月の流れ</h2>
+  </div>
+  <div class="section-body">
+
+    <p class="lead">毎月やることは大きく3つです。給料が入ったら・月の途中・月末に分けて覚えてください。</p>
+
+    <ul class="flow">
+      <li>
+        <div class="flow-label">給料が入ったら（25日以降）</div>
+        <strong>給料を記帳する</strong>
+        <p>代表口座(デビット)に収入として記帳します。</p>
+      </li>
+      <li>
+        <div class="flow-label">給料記帳の後</div>
+        <strong>定例項目を計上する</strong>
+        <p>家賃・返済・積立など毎月決まった支出をまとめて記帳します。</p>
+      </li>
+      <li>
+        <div class="flow-label">月中（日々）</div>
+        <strong>支出をそのつど記帳する</strong>
+        <p>コンビニや交通費など、使ったらすぐ記帳するのがおすすめです。</p>
+      </li>
+      <li>
+        <div class="flow-label">月中（毎週）</div>
+        <strong>週次チェックをする</strong>
+        <p>レポートタブでその週の使い方をAIに評価してもらえます。</p>
+      </li>
+      <li>
+        <div class="flow-label">月末</div>
+        <strong>月次確定をする</strong>
+        <p>その月の収支を締めて、自由貯金への繰越金額を確認します。</p>
+      </li>
+      <li>
+        <div class="flow-label">月末（確定後）</div>
+        <strong>バックアップをとる</strong>
+        <p>データを保存しておきます。月に一度の習慣にしましょう。</p>
+      </li>
+    </ul>
+
+  </div>
+</div>
+
+
+<!-- ==============================
+  ホーム
+=============================== -->
+<div class="section" id="home">
+  <div class="section-header">
+    <span class="icon">🏠</span>
+    <h2>ホーム</h2>
+  </div>
+  <div class="section-body">
+
+    <p class="lead">アプリを開くと最初に表示される画面です。おこづかいの残高と、各口座の状況が一目でわかります。</p>
+
+    <div class="desc-block">
+      <h3>おこづかい残高</h3>
+      <p>代表口座・PayPay・Suica・財布の合計残高です。今月使える残りのお金を示しています。</p>
+    </div>
+
+    <div class="desc-block">
+      <h3>総資産</h3>
+      <p>積立口座を含む全口座の合計残高です。</p>
+    </div>
+
+    <div class="desc-block">
+      <h3>口座カード</h3>
+      <p>各口座の残高と今月の使用額が表示されています。カードをタップすると記帳画面が開きます。</p>
+    </div>
+
+    <div class="desc-block">
+      <h3>📈 増減を確認</h3>
+      <p>各口座の残高が過去12ヶ月でどう変化したかをグラフで確認できます。口座を左右に切り替えて全口座を確認できます。</p>
+    </div>
+
+    <div class="desc-block">
+      <h3>📅 定例を計上</h3>
+      <p>毎月の定例項目（家賃・返済・積立）をまとめて記帳します。給料が入ったら（25日以降）実行してください（詳しくは「定例計上」の章）。</p>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ==============================
+  記帳のしかた
+=============================== -->
+<div class="section" id="record">
+  <div class="section-header">
+    <span class="icon">✏️</span>
+    <h2>記帳のしかた</h2>
+  </div>
+  <div class="section-body">
+
+    <p class="lead">支出・収入・口座間の移動を記帳します。ホームで口座カードをタップすると記帳画面が開きます。</p>
+
+    <div class="divider"></div>
+
+    <p class="bold">支出を記帳する</p>
+    <p class="small muted mt4">例：コンビニで買い物したとき</p>
+
+    <ul class="op-steps mt8">
+      <li>ホームで使った口座のカードをタップ</li>
+      <li>「支出」タブが選ばれていることを確認</li>
+      <li>金額・メモ・カテゴリ・日付を入力</li>
+      <li>「記帳」ボタンを押す</li>
+    </ul>
+
+    <div class="point-card">
+      <div class="label">カテゴリの選びかた</div>
+      おこづかいの支出は、ガソリン代・タバコ代・定期代・医療費のいずれかを選びます。それ以外の日常的な支出は、食費・日用品・趣味・娯楽・交際費・雑費から選んでください。司法書士返済・借金返済(親へ)・家賃(親へ)は定例項目用のカテゴリです。
+    </div>
+
+    <div class="divider"></div>
+
+    <p class="bold">収入を記帳する</p>
+    <p class="small muted mt4">例：給料が入ったとき</p>
+
+    <ul class="op-steps mt8">
+      <li>ホームで代表口座(デビット)のカードをタップ</li>
+      <li>画面上部の「収入」タブを選ぶ</li>
+      <li>金額・メモ（例：「6月給与」）・日付を入力</li>
+      <li>「記帳」ボタンを押す</li>
+    </ul>
+
+    <div class="divider"></div>
+
+    <p class="bold">口座間の移動を記帳する</p>
+    <p class="small muted mt4">例：代表口座からPayPayにチャージしたとき</p>
+
+    <ul class="op-steps mt8">
+      <li>ホームでいずれかの口座カードをタップ</li>
+      <li>画面上部の「振替」タブを選ぶ</li>
+      <li>移動元・移動先・金額・日付を入力</li>
+      <li>「振替」ボタンを押す</li>
+    </ul>
+
+    <div class="warn-box">
+      <strong>⚠ 定例の積立は「振替」ではなく「定例計上」から行います</strong><br>
+      バイク保険やバイク点検などの月次積立は、給料が入ったら（25日以降）「定例を計上」ボタンからまとめて行ってください。ここの振替は、臨時の口座移動のためのものです。
+    </div>
+
+    <div class="divider"></div>
+
+    <p class="bold">記帳を間違えたとき</p>
+
+    <p class="small mt4">履歴タブで該当の記帳をタップすると、編集・削除ができます。<br>
+    振替の場合は削除のみ（削除して入れ直してください）。</p>
+
+  </div>
+</div>
+
+
+<!-- ==============================
+  定例計上
+=============================== -->
+<div class="section" id="recurring">
+  <div class="section-header">
+    <span class="icon">🔄</span>
+    <h2>定例計上</h2>
+    <span class="sub">給料が入ったら（25日以降）やること</span>
+  </div>
+  <div class="section-body">
+
+    <p class="lead">家賃・返済・積立など毎月決まった支出を、まとめて記帳する機能です。給料が入ったら、最初にこれを行ってください。</p>
+
+    <div class="path">ホーム <span>›</span> 📅 定例を計上</div>
+
+    <ul class="op-steps mt8">
+      <li>ホームの「📅 定例を計上」ボタンをタップ</li>
+      <li>一覧が表示される。「全選択」ボタンで全件にチェックを入れる</li>
+      <li>「選択した項目を計上」ボタンを押す</li>
+      <li>計上日（実際に引き落とされた・振り込んだ日）を入力して「計上する」を押す</li>
+      <li>全件が計上済みになると画面が自動的に閉じる</li>
+    </ul>
+
+    <div class="point-card">
+      <div class="label">定例11件の内訳</div>
+      司法書士返済（¥35,000）／家賃（¥50,000）／借金返済（¥10,000）<br>
+      司法書士プール（¥15,000）／通信費（¥2,500）／バイク保険（¥3,500）<br>
+      バイク点検（¥10,000）／バイク整備（¥3,000）／被服費（¥5,000）<br>
+      生活防衛資金（¥10,000）／ライフイベント（¥5,000）
+    </div>
+
+    <div class="ok-box mt12">
+      <strong>✓ 計上済みかどうかの確認</strong><br>
+      レポートタブ（月次確定）を開くと、定例計上パネルに各項目の状態が表示されています。
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ==============================
+  集計タブ
+=============================== -->
+<div class="section" id="summary">
+  <div class="section-header">
+    <span class="icon">📊</span>
+    <h2>集計タブ</h2>
+  </div>
+  <div class="section-body">
+
+    <p class="lead">月ごと・週ごとの支出をカテゴリ別に確認できます。「どこに使いすぎているか」が一目でわかります。</p>
+
+    <div class="desc-block">
+      <h3>月次・週次の切り替え</h3>
+      <p>上部の「月」「週」ボタンで切り替えます。月の場合は左右ボタンで対象月を変更できます。</p>
+    </div>
+
+    <div class="desc-block">
+      <h3>カテゴリ別リスト</h3>
+      <p>固定費・自由費・定例支払いなどの区分ごとに支出が表示されます。各カテゴリ行をタップするとドリルダウン（月別グラフ＋日別明細）が開きます。</p>
+    </div>
+
+    <div class="desc-block">
+      <h3>CSV出力</h3>
+      <p>リスト末尾の「CSV出力」ボタンから、その月の支出をスプレッドシートに書き出せます。</p>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ==============================
+  レポートタブ・月次確定
+=============================== -->
+<div class="section" id="report">
+  <div class="section-header">
+    <span class="icon">📋</span>
+    <h2>レポートタブ・月次確定</h2>
+  </div>
+  <div class="section-body">
+
+    <p class="lead">週次チェックと月次確定の2つの機能があります。上部のタブで切り替えてください。</p>
+
+    <div class="divider"></div>
+
+    <p class="bold">週次チェック</p>
+    <p class="small mt4">その週の支出をAIが評価してくれます。毎週使うことをおすすめします。</p>
+
+    <ul class="op-steps mt8">
+      <li>レポートタブ →「週次チェック」を選ぶ</li>
+      <li>週セレクタで対象の週を確認（デフォルトは今週）</li>
+      <li>「AIチェック」ボタンを押す → 少し待つとコメントが表示される</li>
+    </ul>
+
+    <div class="divider"></div>
+
+    <p class="bold">月次確定</p>
+    <p class="small mt4">月末に一度行います。その月の収支を締めて、自由貯金への繰越額を確認します。</p>
+
+    <ul class="op-steps mt8">
+      <li>レポートタブ →「月次確定」を選ぶ</li>
+      <li>定例計上パネルで全件が計上済みか確認する</li>
+      <li>詳細集計（固定費・自由費・定例支払いの内訳）を確認する</li>
+      <li>「月次確定」ボタンを押す</li>
+      <li>確認画面で繰越額・補充額を確認して「確定する」を押す</li>
+      <li>AI評価が生成される（少し待つ）</li>
+    </ul>
+
+    <div class="point-card mt12">
+      <div class="label">確定後にやること</div>
+      確定が完了すると「自由貯金へ ¥〇〇 を移してください」と表示されます。
+      その金額を実際にSBI(自由貯金)に移動して、振替として記帳してください。<br><br>
+      翌月のおこづかいが不足する場合は、不足分を代表口座から補充する振替も記帳します。
+    </div>
+
+    <div class="ok-box mt12">
+      <strong>✓ 確定のやり直しもできます</strong><br>
+      記帳漏れに気づいた場合は、追記してから「確定し直す」ボタンで再確定できます。
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ==============================
+  履歴タブ
+=============================== -->
+<div class="section" id="history">
+  <div class="section-header">
+    <span class="icon">📝</span>
+    <h2>履歴タブ</h2>
+  </div>
+  <div class="section-body">
+
+    <p class="lead">すべての記帳が日付順に並んでいます。絞り込みや修正もここから行います。</p>
+
+    <div class="desc-block">
+      <h3>絞り込み（フィルター）</h3>
+      <p>上部の「口座▾」「日付▾」「カテゴリ▾」をタップして絞り込めます。青くなっているフィルターが有効です。「リセット」で全解除できます。</p>
+    </div>
+
+    <div class="desc-block">
+      <h3>記帳の修正・削除</h3>
+      <p>一覧の行をタップすると詳細が開き、編集・削除ができます。振替は削除のみ（修正は削除して入れ直し）。</p>
+    </div>
+
+    <div class="desc-block">
+      <h3>CSV出力</h3>
+      <p>右上の「CSV」ボタンから、年・月を指定して書き出せます。「月：指定なし」にすると1年分まとめて出力できます。</p>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ==============================
+  相談タブ
+=============================== -->
+<div class="section" id="consult">
+  <div class="section-header">
+    <span class="icon">💬</span>
+    <h2>相談タブ</h2>
+  </div>
+  <div class="section-body">
+
+    <p class="lead">購入を迷ったときのAI相談と、ほしいものリストの管理ができます。</p>
+
+    <div class="desc-block">
+      <h3>購入相談</h3>
+      <p>品名と価格を入力して「相談する」を押すと、今の残高をもとにAIが購入の可否やタイミングをアドバイスしてくれます。</p>
+    </div>
+
+    <div class="desc-block">
+      <h3>ほしいものリスト</h3>
+      <p>「ほしいもの」タブで品名と目標価格を登録しておくと、購入できるタイミングを確認しやすくなります。購入したら「購入した」ボタンでSBI(自由貯金)からの支出として記帳されます。</p>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ==============================
+  バックアップ
+=============================== -->
+<div class="section" id="backup">
+  <div class="section-header">
+    <span class="icon">💾</span>
+    <h2>バックアップ</h2>
+    <span class="sub">月に一度</span>
+  </div>
+  <div class="section-body">
+
+    <p class="lead">スマホのデータが消えてもバックアップがあれば復元できます。月次確定のあとに毎月行ってください。</p>
+
+    <div class="path">設定 <span>›</span> バックアップ <span>›</span> JSONをダウンロード</div>
+
+    <ul class="op-steps mt8">
+      <li>「設定」タブ →「バックアップ」を開く</li>
+      <li>「JSONをダウンロード」を押す</li>
+      <li>ダウンロードされたファイルをiCloud DriveやGoogle Driveに保存する</li>
+    </ul>
+
+    <div class="warn-box">
+      <strong>⚠ Safariのデータを消去するとアプリのデータも消えます</strong><br>
+      「履歴とWebサイトデータを消去」を実行すると、アプリの記帳データも一緒に消えてしまいます。消去する前に必ずバックアップをとってください。
+    </div>
+
+    <div class="divider"></div>
+
+    <p class="bold">バックアップから復元する</p>
+
+    <div class="path mt8">設定 <span>›</span> バックアップ <span>›</span> JSONから復元</div>
+
+    <ul class="op-steps mt8">
+      <li>「設定」タブ →「バックアップ」を開く</li>
+      <li>「JSONから復元」を押す</li>
+      <li>保存していたバックアップファイルを選択する</li>
+      <li>確認ダイアログで「OK」を押す</li>
+    </ul>
+
+    <div class="warn-box">
+      <strong>⚠ 復元すると現在のデータはすべて上書きされます</strong><br>
+      復元前に現在のデータをバックアップとして保存しておくことをおすすめします。
+    </div>
+
+  </div>
+</div>
+
+
+<div class="footer">
+  家計レポート 使い方ガイド｜2026年6月
+</div>
+
+</body>
+</html>
