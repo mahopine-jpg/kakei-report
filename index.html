@@ -4088,33 +4088,26 @@ async function runWeeklyCheck(){
   const topSpend = [...weekTx].sort((a,b)=>b.amount-a.amount).slice(0,3)
     .map(h=>`${h.memo||'（メモなし）'}¥${fmt(h.amount)}`).join('、') || 'なし';
 
-  const prompt = `あなたは家計アドバイザーです。成人男性のおこづかい管理の週次レポートです。
+  // 固定費の簡易ステータス（プロンプト用）
+  const fixedStatusForAI = fixedStatusItems.map(it => {
+    const over = it.amount > 0 && it.spent > it.amount;
+    return `${it.name}¥${fmt(it.spent)}/¥${fmt(it.amount)}${over?'（超過）':'（目標内）'}`;
+  }).join('、') || 'なし';
+  const freeRem = Math.max(0, freeTotal - freeSpentSoFar);
 
-【今週の支出明細】
-${memoList}
-今週の合計：¥${fmt(weekSpent)}
-今週の目立った支出（上位3件）：${topSpend}
+  const prompt = `おこづかい管理の週次レポートです。以下はアプリが算出した正確な値です。計算は不要です。この数字を見て、ペースの評価と気になる点を100文字以内で一言コメントしてください。
 
-【今月のペース（${elapsedDays}日経過/${daysInMonth2}日、月の${monthPct}%）】
-おこづかい消化率：${okoPct}%（¥${fmt(okoSpentSoFar)}/¥${fmt(getOkozukaiTotal())}）→ ${paceJudge}
-おこづかい残高：¥${fmt(okoBal)}（残り${remainDays}日）
-${fixedStatus}
-自由費（おこづかい${fmt(getOkozukaiTotal())}から固定費${fixedListStr}を除いた枠）：¥${fmt(freeTotal)}、使用済み¥${fmt(freeSpentSoFar)}、残り¥${fmt(Math.max(0,freeTotal-freeSpentSoFar))}${wishText}
+【今月の状況（${elapsedDays}日経過・月の${monthPct}%・残${remainDays}日）】
+おこづかい残高：¥${fmt(okoBal)}　消化率：${okoPct}%（${paceJudge}）
+固定費：${fixedStatusForAI}
+自由費残り：¥${fmt(freeRem)} / ¥${fmt(freeTotal)}
 
-自由費はおこづかいから固定費（ガソリン・タバコ等）を引いた残り全部です。固定費を節約するほど自由費が増えます。使いすぎを責めるより、節約できている点を前向きに評価してください。
-
-以下の順でコメントしてください。
-1. 今週の注目支出に触れながら全体の振り返り（事実ベースで端的に）
-2. 今月のペース評価（月経過${monthPct}%に対しておこづかい消化${okoPct}%という数字を使って具体的に）
-3. 固定費の評価（各項目について、目標内なら褒める、超えていたら優しく指摘。特に超過している項目があれば優先的に触れる）
-4. 来週・今月残りへの一言アドバイス
-
-文体はフラットで簡潔に。読んだ瞬間に状況が把握できるよう、数字を積極的に使う。500文字以内。`;
+文体はフラット。責めない。数字を1つ以上使う。100文字以内厳守。`;
 
     const res = await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body: JSON.stringify({model:'claude-sonnet-4-6',max_tokens:800,messages:[{role:'user',content:prompt}]})
+      body: JSON.stringify({model:'claude-sonnet-4-6',max_tokens:200,messages:[{role:'user',content:prompt}]})
     });
     const data = await res.json();
     if(data.error) throw new Error(data.error.message);
@@ -4136,12 +4129,48 @@ function shareWeeklyMail(){
     ? `\n━━━━━━━━━━━━━━━━━━━━\n■ 共有フォルダ（CSV）\n${folder}\n`
     : '';
 
+  // 今週の支出明細
+  const weekTx2 = history.filter(h => {
+    if(h.rolledOver||h.type==='transfer'||h.type==='income'||h.type==='balance_adjust') return false;
+    const dt = new Date(h.year, h.month-1, h.day);
+    return dt >= mon && dt <= sun;
+  });
+  const weekSpent2 = weekTx2.reduce((s,h)=>s+h.amount,0);
+  const weekLines = weekTx2.length
+    ? weekTx2.map(h=>`・${String(h.month).padStart(2,'0')}/${String(h.day).padStart(2,'0')}　${h.memo||h.category||'（メモなし）'}　¥${fmt(h.amount)}`).join('\n')
+    : '・今週の記帳はありません';
+
+  // 今月の状況
+  const d2 = now();
+  const daysInMonth3 = new Date(d2.getFullYear(), d2.getMonth()+1, 0).getDate();
+  const remainDays2  = daysInMonth3 - d2.getDate();
+  const okoBal2      = okozukaiBalance();
+  const fixedItems2  = fixedSpentByItem();
+  const fixedLines   = fixedItems2.map(it => {
+    const over = it.amount > 0 && it.spent > it.amount;
+    return `・${it.name}　¥${fmt(it.spent)} / ¥${fmt(it.amount)}${over?' ⚠️超過':''}`;
+  }).join('\n');
+  const fixedActual2  = fixedSpentThisMonth();
+  const okoSpent2     = okozukaiSpentThisMonth();
+  const freeBudget2   = freeMonthlyBudget();
+  const freeRem2      = freeBudget2 - Math.max(0, okoSpent2 - fixedActual2);
+
   const subject = encodeURIComponent(`【週次】家計レポート（${fmt2(mon)}〜${fmt2(sun)}）`);
   const body = encodeURIComponent(
 `家計レポート（週次）${fmt2(mon)}〜${fmt2(sun)}
 ━━━━━━━━━━━━━━━━━━━━
-■ 今週のAIコメント
-${aiText || '（AIコメントなし）'}
+■ 今週の支出　合計 ¥${fmt(weekSpent2)}（${weekTx2.length}件）
+${weekLines}
+
+━━━━━━━━━━━━━━━━━━━━
+■ 今月の状況（${d2.getMonth()+1}月${d2.getDate()}日時点・残${remainDays2}日）
+おこづかい残高　¥${fmt(okoBal2)}
+${fixedLines}
+自由費残り　¥${fmt(freeRem2)} / ¥${fmt(freeBudget2)}
+
+━━━━━━━━━━━━━━━━━━━━
+■ AIコメント
+${aiText || '（AIコメントなし・レポート画面でAIチェックを実行してください）'}
 ${folderSection}`);
   const to = encodeURIComponent(fixedCosts.email || '');
   window.location.href = `mailto:${to}?subject=${subject}&body=${body}`;
