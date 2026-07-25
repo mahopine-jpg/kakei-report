@@ -3584,9 +3584,16 @@ function ddSelectMonth(y,m){
 
 function catTxInMonth(catName, y, m){
   const target = ym(y,m);
+  // carryグループ口座（SBI被服費など）の名前一覧。集計タブの小計計算（buildMonthlyBreakdown）と
+  // 同じ基準で、ドリルダウンにもcarry口座の支出を含めないようにする。
+  const carryNames = new Set(wallets.filter(w => w.group === 'carry').map(w => w.name));
   return history.filter(h => {
     if(ym(h.year,h.month)!==target) return false;
     if(h.type==='transfer'||h.type==='income'||h.type==='balance_adjust') return false;
+    // carry口座の支出は、定例の支払い（recurringId付き）でない限りドリルダウン対象外。
+    // これがないと、カテゴリ名が同じだけの他口座（SBI被服費など）の支出が
+    // 固定費／自由費のドリルダウンに紛れ込んでしまう。
+    if(!h.recurringId && carryNames.has(h.walletName)) return false;
     if(h.category) return h.category===catName;
     if(isTobacco(h.memo)) return catName==='タバコ代';
     const fc=(fixedCosts.items||[]).find(fi=>h.memo&&fi.name&&h.memo.includes(fi.name));
