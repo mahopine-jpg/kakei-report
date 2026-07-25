@@ -1552,19 +1552,35 @@ function recurringCategoryNames(){
     .filter(it => (it.kind==='fixed'||it.kind==='debt') && it.category)
     .map(it => it.category))];
 }
-// 全カテゴリ（変動費 + 固定費 + 定例項目）
-function allCategories(){ return [...new Set([...VARIABLE_CATEGORIES, ...fixedCategoryNames(), ...recurringCategoryNames()])]; }
+// carryグループ口座（SBI被服費・バイク保険など）の専用カテゴリ名を、口座名の（）内から導出
+// 例：'SBI(被服費)' → '被服費'
+function carryCategoryName(wallet){
+  const m = wallet && wallet.name && wallet.name.match(/\(([^)]+)\)/);
+  return m ? m[1] : (wallet ? wallet.name : '');
+}
+// carryグループ口座の専用カテゴリ名一覧
+function carryCategoryNames(){
+  return wallets.filter(w => w.group === 'carry').map(w => carryCategoryName(w));
+}
+// 全カテゴリ（変動費 + 固定費 + 定例項目 + carry口座専用）
+function allCategories(){ return [...new Set([...VARIABLE_CATEGORIES, ...fixedCategoryNames(), ...recurringCategoryNames(), ...carryCategoryNames()])]; }
 // 指定カテゴリが固定費カテゴリかどうか
 function isFixedCategory(cat){ return fixedCategoryNames().includes(cat); }
 // カテゴリ選択肢を <select> に流し込む（現在値をできるだけ維持）
+// 選択中の口座がcarryグループ（SBI被服費など）の場合は、その口座専用カテゴリ1つだけに絞る。
+// これにより「被服費を買ったのにおこづかいカテゴリしか選べない」問題を防ぐ。
 function populateCategorySelect(){
   const sel = document.getElementById('inp-category');
   if(!sel) return;
   const prev = sel.value;
-  const cats = allCategories();
+  const wSel = document.getElementById('wallet-select');
+  const widx = wSel ? parseInt(wSel.value, 10) : NaN;
+  const w = Number.isInteger(widx) ? wallets[widx] : null;
+  const cats = (w && w.group === 'carry') ? [carryCategoryName(w)] : allCategories();
   sel.innerHTML = '<option value="">カテゴリを選択</option>' + cats.map(c => `<option value="${c}">${c}</option>`).join('');
   if(cats.includes(prev)) sel.value = prev;
-  // prev が空（未選択）のままにしたい場合は何もしない（プレースホルダーが選択される）
+  else if(w && w.group === 'carry' && cats.length === 1) sel.value = cats[0]; // carry口座は1択なので自動選択
+  // それ以外はプレースホルダーのまま（未選択）
 }
 
 // 固定費合計を返すヘルパー
@@ -2478,8 +2494,11 @@ function editTx(id, e){
   document.getElementById('inp-amount').value = tx.amount;
   document.getElementById('inp-memo').value   = tx.memo;
   populateCategorySelect();
-  if(tx.category && allCategories().includes(tx.category)){
-    document.getElementById('inp-category').value = tx.category;
+  // フィルタ後のカテゴリ選択肢に含まれる場合のみ反映（carry口座の場合は専用カテゴリのみが対象）
+  if(tx.category){
+    const catSel = document.getElementById('inp-category');
+    const hasOpt = Array.from(catSel.options).some(o => o.value === tx.category);
+    if(hasOpt) catSel.value = tx.category;
   }
   const yyyy = tx.year;
   const mm   = String(tx.month).padStart(2,'0');
@@ -5273,6 +5292,9 @@ function onWalletSelectChange(){
   const wrap = document.getElementById('receipt-btn-wrap');
   // 口座が選ばれていてAPIキーがある場合のみレシートボタンを表示
   wrap.style.display = apiKey ? 'block' : 'none';
+  // 口座に応じてカテゴリ選択肢を切り替える（carryグループなら専用カテゴリ1つに絞る）
+  populateCategorySelect();
+  checkAddBtn();
 }
 
 async function readReceipt(input){
