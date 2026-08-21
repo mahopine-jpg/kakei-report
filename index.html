@@ -5048,7 +5048,14 @@ function csvCell(v){
   return /[",\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
 }
 
-// 1レコードをDB形式の行配列[日付,年,月,口座,種別,カテゴリ,内容,金額,相手口座,定例]に変換
+// 月内の週番号を算出（土曜始まり：土曜〜金曜が1週間、1日を含む週が第1週、月替わりでリセット）
+function weekNumberOfMonth(year, month, day){
+  const dow = new Date(year, month-1, 1).getDay(); // 1日の曜日（0=日,...,6=土）
+  const offset = (dow + 1) % 7; // 1日が直前の土曜から何日目か
+  return Math.floor((offset + day - 1) / 7) + 1;
+}
+
+// 1レコードをDB形式の行配列[日付,年,月,週,口座,種別,カテゴリ,内容,金額,相手口座,定例]に変換
 function recordToRow(h){
   const dateStr = `${h.year}-${String(h.month).padStart(2,'0')}-${String(h.day).padStart(2,'0')}`;
   let kind = '', account = h.walletName || '', category = '', peer = '', sign = 0;
@@ -5070,13 +5077,14 @@ function recordToRow(h){
     kind = '支出'; category = h.category || ''; sign = -h.amount;
   }
   const recur = h.recurringId ? '✓' : '';
-  return [dateStr, h.year, h.month, account, kind, category, (h.memo||''), sign, peer, recur];
+  const weekLabel = `第${weekNumberOfMonth(h.year, h.month, h.day)}週`;
+  return [dateStr, h.year, h.month, weekLabel, account, kind, category, (h.memo||''), sign, peer, recur];
 }
 
 // 指定年月の明細をDB形式CSV文字列で組み立てる
 function buildDetailCSV(year, month){
   const target = ym(year, month);
-  let csv = '\uFEFF日付,年,月,口座,種別,カテゴリ,内容,金額,相手口座,定例\n';
+  let csv = '\uFEFF日付,年,月,週,口座,種別,カテゴリ,内容,金額,相手口座,定例\n';
   history
     .filter(h => ym(h.year, h.month) === target)
     .sort((a,b)=> new Date(a.year,a.month-1,a.day) - new Date(b.year,b.month-1,b.day))
@@ -5114,7 +5122,7 @@ function populateCsvYears(){
 
 // 暦年（1〜12月）まるごとの明細CSV
 function buildDetailCSVForYear(year){
-  let csv = '\uFEFF日付,年,月,口座,種別,カテゴリ,内容,金額,相手口座,定例\n';
+  let csv = '\uFEFF日付,年,月,週,口座,種別,カテゴリ,内容,金額,相手口座,定例\n';
   history
     .filter(h => h.year === year)
     .sort((a,b)=> new Date(a.year,a.month-1,a.day) - new Date(b.year,b.month-1,b.day))
@@ -5152,7 +5160,7 @@ function downloadCSV(csv, filename){
 
 // 今週（週セレクタの選択週）の明細をDB形式CSVで出力
 function buildWeekCSV(mon, sun){
-  let csv = '\uFEFF日付,年,月,口座,種別,カテゴリ,内容,金額,相手口座,定例\n';
+  let csv = '\uFEFF日付,年,月,週,口座,種別,カテゴリ,内容,金額,相手口座,定例\n';
   history
     .filter(h => {
       const d = new Date(h.year, h.month-1, h.day);
